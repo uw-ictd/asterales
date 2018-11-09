@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 sawtooth-sdk = "*"
 cbor = "*"
+requests = "*"
 
 [dev-packages]
 
