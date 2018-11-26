@@ -20,6 +20,14 @@ services:
       - validator
     entrypoint: identity-tp -vv -C tcp://validator:4004
 
+  crdt-tp:
+    build: .
+    #image: matt9j/crdt-tp-python:staging
+    container_name: crdt-tp-python-crdt
+    depends_on:
+      - validator
+    entrypoint: python3 crdt-tp-python/test.py -C tcp://validator:4004
+
   validator:
     image: hyperledger/sawtooth-validator:1.0
     container_name: sawtooth-validator-crdt

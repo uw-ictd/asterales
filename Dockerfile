@@ -1,53 +1,29 @@
-# Copyright 2018 Cargill Incorporated
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# docker build -f Dockerfile -t crdt-tp-python:local .
 
-# docker build -f sdk/examples/intkey_python/Dockerfile -t intkey-tp-python-local .
+# -------------=== crdt-tp-python build ===-------------
 
-# -------------=== intkey-tp-python build ===-------------
+FROM ubuntu:bionic
 
-FROM ubuntu:xenial
+# Set the locale for modern unicode python: ubuntu image defaults to ASCII
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 
-RUN echo "deb http://repo.sawtooth.me/ubuntu/ci xenial universe" >> /etc/apt/sources.list \
- && (apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8AA7AF1F1091A5FD \
- || apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 8AA7AF1F1091A5FD) \
- && apt-get update
+# Pip requires a "falsy" value to disable building the cache
+# https://pip.pypa.io/en/stable/user_guide/#configuration
+ENV PIP_NO_CACHE_DIR false
 
-RUN apt-get install -y -q --allow-downgrades \
-    git \
-    python3 \
-    python3-stdeb
+RUN apt-get update && apt-get install -y -q \
+        libsecp256k1-0 \
+        libsecp256k1-dev \
+        pkg-config \
+        python3 \
+        python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y -q --allow-downgrades \
-    python3-grpcio \
-    python3-grpcio-tools \
-    python3-protobuf
+COPY Pipfile Pipfile.lock ./
 
-RUN apt-get install -y -q --allow-downgrades \
-    python3-cbor \
-    python3-colorlog \
-    python3-toml \
-    python3-yaml \
-    python3-zmq
+RUN pip3 install --upgrade \
+        pipenv \
+    && pipenv install --system --deploy
 
-RUN mkdir -p /var/log/sawtooth
-
-ENV PATH=$PATH:/project/sawtooth-core/bin
-
-WORKDIR /project/sawtooth-core
-
-CMD echo "\033[0;32m--- Building intkey-tp-python ---\n\033[0m" \
- && bin/protogen \
- && cd sdk/examples/intkey_python \
- && python3 setup.py clean --all \
- && python3 setup.py build
+COPY crdt-tp-python ./crdt-tp-python
