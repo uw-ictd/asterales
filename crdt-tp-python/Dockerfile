@@ -26,4 +26,4 @@ RUN pip3 install --upgrade \
         pipenv \
     && pipenv install --system --deploy
 
-COPY crdt-tp-python ./crdt-tp-python
+COPY ./ ./crdt-tp-python
