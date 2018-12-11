@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sawtooth-sdk = "*"
+sawtooth-sdk = ">1.0,<1.1"
 cbor = "*"
 requests = "*"
 
