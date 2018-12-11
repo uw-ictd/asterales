@@ -8,14 +8,14 @@ services:
 
   settings-tp:
     image: hyperledger/sawtooth-settings-tp:1.0
-    container_name: sawtooth-settings-tp-crdt
+    container_name: sawtooth-settings-tp
     depends_on:
       - validator
     entrypoint: settings-tp -vv -C tcp://validator:4004
 
   identity-tp:
     image: hyperledger/sawtooth-identity-tp:1.0
-    container_name: sawtooth-identity-tp-crdt
+    container_name: sawtooth-identity-tp
     depends_on:
       - validator
     entrypoint: identity-tp -vv -C tcp://validator:4004
@@ -23,14 +23,14 @@ services:
   crdt-tp:
     build: crdt-tp-python
     #image: matt9j/crdt-tp-python:staging
-    container_name: crdt-tp-python-crdt
+    container_name: crdt-tp-python
     depends_on:
       - validator
     entrypoint: python3 crdt-tp-python/processor/main.py -C tcp://validator:4004
 
   validator:
     image: hyperledger/sawtooth-validator:1.0
-    container_name: sawtooth-validator-crdt
+    container_name: sawtooth-validator
     expose:
       - 4004
     ports:
@@ -49,7 +49,7 @@ services:
 
   rest-api:
     image: hyperledger/sawtooth-rest-api:1.0
-    container_name: sawtooth-rest-api-crdt
+    container_name: sawtooth-rest-api
     ports:
       - "8008:8008"
     depends_on:
@@ -58,7 +58,7 @@ services:
 
   shell:
     image: hyperledger/sawtooth-all:1.0
-    container_name: sawtooth-shell-crdt
+    container_name: sawtooth-shell
     depends_on:
       - rest-api
     entrypoint: "bash -c \"\
