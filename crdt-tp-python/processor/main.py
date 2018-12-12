@@ -1,4 +1,5 @@
 # Copyright 2016 Intel Corporation
+# Copyright 2018 University of Washington
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +14,9 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
+import os
 import sys
 import argparse
-import pkg_resources
 
 from sawtooth_sdk.processor.core import TransactionProcessor
 from sawtooth_sdk.processor.log import init_console_logging
@@ -25,7 +26,8 @@ from sawtooth_sdk.processor.config import get_log_dir
 from processor.handler import IntkeyTransactionHandler
 
 
-DISTRIBUTION_NAME = 'sawtooth-intkey'
+__version__ = "0.0.1"
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(
@@ -41,23 +43,17 @@ def parse_args(args):
                         default=0,
                         help='Increase output sent to stderr')
 
-    try:
-        version = pkg_resources.get_distribution(DISTRIBUTION_NAME).version
-    except pkg_resources.DistributionNotFound:
-        version = 'UNKNOWN'
-
     parser.add_argument(
         '-V', '--version',
         action='version',
-        version=(DISTRIBUTION_NAME + ' (Hyperledger Sawtooth) version {}')
-        .format(version),
+        version=('CRDT Transaction Processor (Python) version {}')
+        .format(__version__),
         help='print version information')
 
     return parser.parse_args(args)
 
 
 def main(args=None):
-    print("EXECUTING!!!")
     if args is None:
         args = sys.argv[1:]
     opts = parse_args(args)
@@ -74,13 +70,12 @@ def main(args=None):
             log_configuration(log_config=log_config)
         else:
             log_dir = get_log_dir()
-            log_dir = "./"
+            os.makedirs(log_dir, exist_ok=True)
             # use the transaction processor zmq identity for filename
             log_configuration(
                 log_dir=log_dir,
                 name="intkey-" + str(processor.zmq_id)[2:-1])
 
-        print("init logging")
         init_console_logging(verbose_level=opts.verbose)
 
         # The prefix should eventually be looked up from the
@@ -97,3 +92,7 @@ def main(args=None):
     finally:
         if processor is not None:
             processor.stop()
+
+
+if __name__ == "__main__":
+    main()
