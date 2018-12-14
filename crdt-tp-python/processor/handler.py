@@ -95,12 +95,6 @@ class CrdtTransactionHandler(TransactionHandler):
 
         _do_action(action, action_payload, context)
 
-        state = _get_state_data(name, context)
-
-        updated_state = _do_intkey(verb, name, value, state)
-
-        _set_state_data(name, updated_state, context)
-
 
 def _unpack_transaction(transaction):
     action, action_payload = _decode_action(transaction)
@@ -154,12 +148,9 @@ def _add_user(serialized_payload, context):
     # TODO(matt9j) Validate the network signature against the known home network key!
 
     address = make_user_address(imsi)
-    try:
-        _get_state_data(address, context)
+    data = _get_state_data(address, context)
+    if data:
         raise InvalidTransaction('The user {} already exists'.format(imsi))
-    except IndexError:
-        # It's okay if the user does not exist.
-        pass
 
     user_state = {'id': imsi, 'pub_key': pub_key, 'home_net': home_network}
     _set_state_data(address, user_state, context)
