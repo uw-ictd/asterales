@@ -1,4 +1,5 @@
 # Copyright 2016, 2017 Intel Corporation
+# Copyright 2018 University of Washington
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,20 +24,19 @@ import pkg_resources
 
 from colorlog import ColoredFormatter
 
-from sawtooth_intkey.client_cli.generate import add_generate_parser
-from sawtooth_intkey.client_cli.generate import do_generate
-from sawtooth_intkey.client_cli.populate import add_populate_parser
-from sawtooth_intkey.client_cli.populate import do_populate
-from sawtooth_intkey.client_cli.create_batch import add_create_batch_parser
-from sawtooth_intkey.client_cli.create_batch import do_create_batch
-from sawtooth_intkey.client_cli.load import add_load_parser
-from sawtooth_intkey.client_cli.load import do_load
-from sawtooth_intkey.client_cli.intkey_workload import add_workload_parser
-from sawtooth_intkey.client_cli.intkey_workload import do_workload
+#from sawtooth_intkey.client_cli.generate import add_generate_parser
+#from sawtooth_intkey.client_cli.generate import do_generate
+#from sawtooth_intkey.client_cli.populate import add_populate_parser
+#from sawtooth_intkey.client_cli.populate import do_populate
+#from sawtooth_intkey.client_cli.create_batch import add_create_batch_parser
+#from sawtooth_intkey.client_cli.create_batch import do_create_batch
+#from sawtooth_intkey.client_cli.load import add_load_parser
+#from sawtooth_intkey.client_cli.load import do_load
+#from sawtooth_intkey.client_cli.intkey_workload import add_workload_parser
+#from sawtooth_intkey.client_cli.intkey_workload import do_workload
 
-from sawtooth_intkey.client_cli.intkey_client import IntkeyClient
-from sawtooth_intkey.client_cli.exceptions import IntKeyCliException
-from sawtooth_intkey.client_cli.exceptions import IntkeyClientException
+from client_cli.client import Client
+from client_cli.exceptions import CrdtCliException, CrdtClientException
 
 
 DISTRIBUTION_NAME = 'sawtooth-intkey'
@@ -109,39 +109,42 @@ def create_parser(prog_name):
 
     subparsers = parser.add_subparsers(title='subcommands', dest='command')
 
-    add_set_parser(subparsers, parent_parser)
-    add_inc_parser(subparsers, parent_parser)
-    add_dec_parser(subparsers, parent_parser)
-    add_show_parser(subparsers, parent_parser)
+    add_add_user_parser(subparsers, parent_parser)
+    add_show_user_parser(subparsers, parent_parser)
     add_list_parser(subparsers, parent_parser)
 
-    add_generate_parser(subparsers, parent_parser)
-    add_load_parser(subparsers, parent_parser)
-    add_populate_parser(subparsers, parent_parser)
-    add_create_batch_parser(subparsers, parent_parser)
-    add_workload_parser(subparsers, parent_parser)
+    #add_generate_parser(subparsers, parent_parser)
+    #add_load_parser(subparsers, parent_parser)
+    #add_populate_parser(subparsers, parent_parser)
+    #add_create_batch_parser(subparsers, parent_parser)
+    #add_workload_parser(subparsers, parent_parser)
 
     return parser
 
 
-def add_set_parser(subparsers, parent_parser):
-    message = 'Sends an intkey transaction to set <name> to <value>.'
+def add_add_user_parser(subparsers, parent_parser):
+    message = 'Sends a crdt add_user transaction to add <imsi> with <public_key> and <home_network>.'
 
     parser = subparsers.add_parser(
-        'set',
+        'add_user',
         parents=[parent_parser],
         description=message,
-        help='Sets an intkey value')
+        help='Adds a crdt user')
 
     parser.add_argument(
-        'name',
+        'imsi',
         type=str,
-        help='name of key to set')
+        help='the identity of the user to add')
 
     parser.add_argument(
-        'value',
-        type=int,
-        help='amount to set')
+        'public_key',
+        type=str,
+        help='the user\'s public key')
+
+    parser.add_argument(
+        'home_network',
+        type=str,
+        help='the user home network')
 
     parser.add_argument(
         '--url',
@@ -161,114 +164,26 @@ def add_set_parser(subparsers, parent_parser):
         help='set time, in seconds, to wait for transaction to commit')
 
 
-def do_set(args):
-    name, value, wait = args.name, args.value, args.wait
+def do_add_user(args):
+    imsi, pub_key, home_net, wait = args.imsi, args.public_key, args.home_network, args.wait
     client = _get_client(args)
-    response = client.set(name, value, wait)
+    response = client.add_user(imsi, pub_key, home_net, wait)
     print(response)
 
 
-def add_inc_parser(subparsers, parent_parser):
-    message = 'Sends an intkey transaction to increment <name> by <value>.'
-
-    parser = subparsers.add_parser(
-        'inc',
-        parents=[parent_parser],
-        description=message,
-        help='Increments an intkey value')
-
-    parser.add_argument(
-        'name',
-        type=str,
-        help='identify name of key to increment')
-
-    parser.add_argument(
-        'value',
-        type=int,
-        help='specify amount to increment')
-
-    parser.add_argument(
-        '--url',
-        type=str,
-        help='specify URL of REST API')
-
-    parser.add_argument(
-        '--keyfile',
-        type=str,
-        help="identify file containing user's private key")
-
-    parser.add_argument(
-        '--wait',
-        nargs='?',
-        const=sys.maxsize,
-        type=int,
-        help='set time, in seconds, to wait for transaction to commit')
-
-
-def do_inc(args):
-    name, value, wait = args.name, args.value, args.wait
-    client = _get_client(args)
-    response = client.inc(name, value, wait)
-    print(response)
-
-
-def add_dec_parser(subparsers, parent_parser):
-    message = 'Sends an intkey transaction to decrement <name> by <value>.'
-
-    parser = subparsers.add_parser(
-        'dec',
-        parents=[parent_parser],
-        description=message,
-        help='Decrements an intkey value')
-
-    parser.add_argument(
-        'name',
-        type=str,
-        help='identify name of key to decrement')
-
-    parser.add_argument(
-        'value',
-        type=int,
-        help='amount to decrement')
-
-    parser.add_argument(
-        '--url',
-        type=str,
-        help='specify URL of REST API')
-
-    parser.add_argument(
-        '--keyfile',
-        type=str,
-        help="identify file containing user's private key")
-
-    parser.add_argument(
-        '--wait',
-        nargs='?',
-        const=sys.maxsize,
-        type=int,
-        help='set time, in seconds, to wait for transaction to commit')
-
-
-def do_dec(args):
-    name, value, wait = args.name, args.value, args.wait
-    client = _get_client(args)
-    response = client.dec(name, value, wait)
-    print(response)
-
-
-def add_show_parser(subparsers, parent_parser):
+def add_show_user_parser(subparsers, parent_parser):
     message = 'Shows the value of the key <name>.'
 
     parser = subparsers.add_parser(
-        'show',
+        'show_user',
         parents=[parent_parser],
         description=message,
-        help='Displays the specified intkey value')
+        help='Displays the specified user value')
 
     parser.add_argument(
-        'name',
+        'imsi',
         type=str,
-        help='name of key to show')
+        help='id of the user to show')
 
     parser.add_argument(
         '--url',
@@ -276,11 +191,11 @@ def add_show_parser(subparsers, parent_parser):
         help='specify URL of REST API')
 
 
-def do_show(args):
-    name = args.name
+def do_show_user(args):
+    imsi = args.imsi
     client = _get_client(args)
-    value = client.show(name)
-    print('{}: {}'.format(name, value))
+    value = client.show_user(imsi)
+    print('{}: {}'.format(imsi, value))
 
 
 def add_list_parser(subparsers, parent_parser):
@@ -307,7 +222,7 @@ def do_list(args):
 
 
 def _get_client(args):
-    return IntkeyClient(
+    return Client(
         url=DEFAULT_URL if args.url is None else args.url,
         keyfile=_get_keyfile(args))
 
@@ -342,14 +257,10 @@ def main(prog_name=os.path.basename(sys.argv[0]), args=None):
         parser.print_help()
         sys.exit(1)
 
-    if args.command == 'set':
-        do_set(args)
-    elif args.command == 'inc':
-        do_inc(args)
-    elif args.command == 'dec':
-        do_dec(args)
-    elif args.command == 'show':
-        do_show(args)
+    if args.command == 'add_user':
+        do_add_user(args)
+    elif args.command == 'show_user':
+        do_show_user(args)
     elif args.command == 'list':
         do_list(args)
     elif args.command == 'generate':
@@ -364,14 +275,14 @@ def main(prog_name=os.path.basename(sys.argv[0]), args=None):
         do_workload(args)
 
     else:
-        raise IntKeyCliException("invalid command: {}".format(args.command))
+        raise CrdtCliException("invalid command: {}".format(args.command))
 
 
 def main_wrapper():
     # pylint: disable=bare-except
     try:
         main()
-    except (IntKeyCliException, IntkeyClientException) as err:
+    except (CrdtCliException, CrdtClientException) as err:
         print("Error: {}".format(err), file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:

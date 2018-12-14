@@ -1,3 +1,3 @@
-import client_cli.intkey_cli as intkey_cli
+import client_cli.cli as cli
 
-intkey_cli.main_wrapper()
+cli.main_wrapper()

@@ -13,12 +13,13 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-import hashlib
 import base64
-import time
-import requests
-import yaml
 import cbor
+import enum
+import hashlib
+import requests
+import time
+import yaml
 
 from sawtooth_signing import create_context
 from sawtooth_signing import CryptoFactory
@@ -31,14 +32,63 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from sawtooth_intkey.client_cli.exceptions import IntkeyClientException
+from client_cli.exceptions import CrdtClientException
+
+
+FAMILY_METADATA = {
+    'name': 'billing-crdt',
+    'versions': ['0.0.1'],
+    }
+
+FAMILY_METADATA['prefixes'] = [
+    hashlib.sha512(FAMILY_METADATA['name'].encode('utf-8')).hexdigest()[0:6],
+    ]
+
+_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH = 60
+
+
+class ChainStructureTag(enum.Enum):
+    """Tags following the transaction family prefix for different chain structures"""
+    USERS = '0000'
+    NETWORKS = '0001'
+    CRDT = '0002'
+
+
+class ActionTypes(enum.Enum):
+    """The types of messages available for processing"""
+    ADD_USER = 0
+    ADD_NET = 1
+    SPEND = 2
+    TOP_UP = 3
+
+
+def make_crdt_address(name):
+    return FAMILY_METADATA['prefixes'][0] + hashlib.sha512(
+        name.encode('utf-8')).hexdigest()[-64:]
+
+
+def make_user_address(user_id):
+    # TODO(matt9j) Clean up user id handling and separate from IMSI
+    # Check if the user_id is a valid hex string
+    try:
+        int(user_id, 16)
+    except ValueError:
+        raise ValueError('The UserId \'{}\' is not a valid hex string'.format(user_id))
+
+    if len(user_id) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
+        raise ValueError('The UserId must be at most {} hex characters \'{}\' is {} characters'.format(
+                _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, user_id, len(user_id)))
+    # Pad the user id out to the max length
+    padded_id = user_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
+
+    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.USERS.value + padded_id
 
 
 def _sha512(data):
     return hashlib.sha512(data).hexdigest()
 
 
-class IntkeyClient:
+class Client:
     def __init__(self, url, keyfile=None):
         self.url = url
 
@@ -48,26 +98,23 @@ class IntkeyClient:
                     private_key_str = fd.read().strip()
                     fd.close()
             except OSError as err:
-                raise IntkeyClientException(
+                raise CrdtClientException(
                     'Failed to read private key: {}'.format(str(err)))
 
             try:
                 private_key = Secp256k1PrivateKey.from_hex(private_key_str)
             except ParseError as e:
-                raise IntkeyClientException(
+                raise CrdtClientException(
                     'Unable to load private key: {}'.format(str(e)))
 
             self._signer = CryptoFactory(
                 create_context('secp256k1')).new_signer(private_key)
 
-    def set(self, name, value, wait=None):
-        return self._send_transaction('set', name, value, wait=wait)
-
-    def inc(self, name, value, wait=None):
-        return self._send_transaction('inc', name, value, wait=wait)
-
-    def dec(self, name, value, wait=None):
-        return self._send_transaction('dec', name, value, wait=wait)
+    def add_user(self, imsi, public_key, home_network, wait=None):
+        action = ActionTypes.ADD_USER.value
+        action_payload = cbor.dumps({'imsi': imsi, 'pub_key': public_key, 'home_net': home_network})
+        address = make_user_address(imsi)
+        return self._send_transaction(action, action_payload, [address], wait=wait)
 
     def list(self):
         result = self._send_request(
@@ -85,15 +132,16 @@ class IntkeyClient:
         except BaseException:
             return None
 
-    def show(self, name):
-        address = self._get_address(name)
+    def show_user(self, imsi):
+        address = make_user_address(imsi)
 
-        result = self._send_request("state/{}".format(address), name=name,)
+        result = self._send_request("state/{}".format(address), name=imsi,)
 
         try:
+            print("Got to the load data part!")
             return cbor.loads(
                 base64.b64decode(
-                    yaml.safe_load(result)["data"]))[name]
+                    yaml.safe_load(result)["data"]))
 
         except BaseException:
             return None
@@ -104,9 +152,10 @@ class IntkeyClient:
                 'batch_statuses?id={}&wait={}'.format(batch_id, wait),)
             return yaml.safe_load(result)['data'][0]['status']
         except BaseException as err:
-            raise IntkeyClientException(err)
+            raise CrdtClientException(err)
 
-    def _get_prefix(self):
+    @staticmethod
+    def _get_prefix():
         return _sha512('billing-crdt'.encode('utf-8'))[0:6]
 
     def _get_address(self, name):
@@ -132,37 +181,33 @@ class IntkeyClient:
                 result = requests.get(url, headers=headers)
 
             if result.status_code == 404:
-                raise IntkeyClientException("No such key: {}".format(name))
+                raise CrdtClientException("No such key: {}".format(name))
 
             elif not result.ok:
-                raise IntkeyClientException("Error {}: {}".format(
+                raise CrdtClientException("Error {}: {}".format(
                     result.status_code, result.reason))
 
         except requests.ConnectionError as err:
-            raise IntkeyClientException(
+            raise CrdtClientException(
                 'Failed to connect to REST API: {}'.format(err))
 
         except BaseException as err:
-            raise IntkeyClientException(err)
+            raise CrdtClientException(err)
 
         return result.text
 
-    def _send_transaction(self, verb, name, value, wait=None):
+    def _send_transaction(self, action, action_payload, addresses, wait=None):
         payload = cbor.dumps({
-            'Verb': verb,
-            'Name': name,
-            'Value': value,
+            'action': action,
+            'payload': action_payload
         })
-
-        # Construct the address
-        address = self._get_address(name)
 
         header = TransactionHeader(
             signer_public_key=self._signer.get_public_key().as_hex(),
             family_name="billing-crdt",
             family_version="0.0.1",
-            inputs=[address],
-            outputs=[address],
+            inputs=addresses,
+            outputs=addresses,
             dependencies=[],
             payload_sha512=_sha512(payload),
             batcher_public_key=self._signer.get_public_key().as_hex(),
