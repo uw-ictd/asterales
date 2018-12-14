@@ -23,7 +23,7 @@ from sawtooth_sdk.processor.log import init_console_logging
 from sawtooth_sdk.processor.log import log_configuration
 from sawtooth_sdk.processor.config import get_log_config
 from sawtooth_sdk.processor.config import get_log_dir
-from processor.handler import IntkeyTransactionHandler
+from processor.handler import CrdtTransactionHandler
 
 
 __version__ = "0.0.1"
@@ -80,7 +80,7 @@ def main(args=None):
 
         # The prefix should eventually be looked up from the
         # validator's namespace registry.
-        handler = IntkeyTransactionHandler()
+        handler = CrdtTransactionHandler()
 
         processor.add_handler(handler)
 
