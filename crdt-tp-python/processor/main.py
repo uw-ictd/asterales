@@ -14,9 +14,10 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
+import argparse
 import os
 import sys
-import argparse
+import traceback
 
 from sawtooth_sdk.processor.core import TransactionProcessor
 from sawtooth_sdk.processor.log import init_console_logging
@@ -89,6 +90,7 @@ def main(args=None):
         pass
     except Exception as e:  # pylint: disable=broad-except
         print("Error: {}".format(e), file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
     finally:
         if processor is not None:
             processor.stop()
