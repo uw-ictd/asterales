@@ -21,7 +21,9 @@ services:
     entrypoint: identity-tp -vv -C tcp://validator:4004
 
   crdt-tp:
-    build: crdt-tp-python
+    build:
+      context: ./
+      dockerfile: crdt-tp-python/Dockerfile
     #image: matt9j/crdt-tp-python:staging
     container_name: crdt-tp-python
     depends_on:

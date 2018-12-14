@@ -15,7 +15,6 @@
 
 import base64
 import cbor
-import enum
 import hashlib
 import requests
 import time
@@ -33,7 +32,7 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
 from client_cli.exceptions import CrdtClientException
-from definitions import ActionTypes, make_user_address
+from dandelion_protocol.definitions import ActionTypes, make_user_address
 
 
 def _sha512(data):

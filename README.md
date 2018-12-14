@@ -7,6 +7,13 @@ dandelion uses containerized build and run environments. To run with a default t
 network and a locally built CRDT processor, simply run `docker-compose build` and
 `docker-compose up` from the root directory.
 
+## Manually building Dockerfiles
+
+The dockerfiles are kind of a mess right now, since the dandelion protocol common "library" is included in multiple
+images via copying into each image. This means that the container build context needs to be the root project directory,
+not the subdirectories where the dockerfiles for each image lie. The docker-compose file takes care of all this for you,
+but if you need build manually you have been warned.
+
 # Things to do:
 Track tower identities as entities allowed to submit transactions "on the chain"
 Track tower identities as signers for crdt updates

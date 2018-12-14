@@ -1,4 +1,5 @@
-# docker build -f Dockerfile -t crdt-tp-python:local .
+# Build from the project root directory context...
+# docker build -f crdt-tp-python/Dockerfile -t crdt-tp-python:local .
 
 # -------------=== crdt-tp-python build ===-------------
 
@@ -20,7 +21,7 @@ RUN apt-get update && apt-get install -y -q \
         python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-COPY Pipfile Pipfile.lock ./
+COPY crdt-tp-python/Pipfile crdt-tp-python/Pipfile.lock ./
 
 RUN pip3 install --upgrade \
         pipenv \
@@ -28,4 +29,8 @@ RUN pip3 install --upgrade \
 
 ENV PYTHONPATH "/crdt-tp-python"
 
-COPY ./ ./crdt-tp-python
+# Add the python protocol dependencies
+# TODO(matt9j) Eventually move to a more structured language independent protocol like protobuf
+COPY dandelion-protocol/dandelion_protocol/ ./crdt-tp-python/dandelion_protocol
+
+COPY crdt-tp-python/ ./crdt-tp-python
