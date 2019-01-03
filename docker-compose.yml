@@ -39,15 +39,16 @@ services:
       - "4004:4004"
     # start the validator with an empty genesis batch
     entrypoint: "bash -c \"\
-        sawadm keygen && \
+      if sawadm keygen ; then \
         sawtooth keygen my_key && \
         sawset genesis -k /root/.sawtooth/keys/my_key.priv && \
-        sawadm genesis config-genesis.batch && \
-        sawtooth-validator -vv \
-          --endpoint tcp://validator:8800 \
-          --bind component:tcp://eth0:4004 \
-          --bind network:tcp://eth0:8800 \
-        \""
+        sawadm genesis config-genesis.batch ; \
+      fi ; \
+      sawtooth-validator -vv \
+        --endpoint tcp://validator:8800 \
+        --bind component:tcp://eth0:4004 \
+        --bind network:tcp://eth0:8800 \
+      \""
 
   rest-api:
     image: hyperledger/sawtooth-rest-api:1.0
@@ -66,7 +67,10 @@ services:
     depends_on:
       - rest-api
     working_dir: /ccn-server
-    entrypoint: "pipenv run python server/main.py"
+    entrypoint: "bash -c \"\
+      sawtooth keygen ; \
+      pipenv run python server/main.py ; \
+      \""
 
   shell:
     image: hyperledger/sawtooth-all:1.0
@@ -74,6 +78,6 @@ services:
     depends_on:
       - rest-api
     entrypoint: "bash -c \"\
-        sawtooth keygen && \
-        tail -f /dev/null \
-        \""
+      sawtooth keygen ; \
+      tail -f /dev/null \
+      \""
