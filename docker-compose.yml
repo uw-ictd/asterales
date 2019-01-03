@@ -58,6 +58,14 @@ services:
       - validator
     entrypoint: sawtooth-rest-api -C tcp://validator:4004 --bind rest-api:8008
 
+  ccn-server:
+    build:
+      context: ./
+      dockerfile: ccn-server/Dockerfile
+    container_name: ccn-server
+    depends_on:
+      - rest-api
+
   shell:
     image: hyperledger/sawtooth-all:1.0
     container_name: sawtooth-shell

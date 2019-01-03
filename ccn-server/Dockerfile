@@ -1,9 +1,9 @@
 # Build from the project root directory context...
 # docker build -f ccn-server/Dockerfile -t ccn-server:local .
 
-# -------------=== ccn-server build ===-------------
+# -------------=== ccn-server deployment image ===-------------
 
-FROM ubuntu:bionic
+FROM hyperledger/sawtooth-shell:1.0
 
 # Set the locale for modern unicode python: ubuntu image defaults to ASCII
 ENV LANG C.UTF-8
@@ -21,11 +21,12 @@ RUN apt-get update && apt-get install -y -q \
         python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ccn-server/Pipfile ccn-server/Pipfile.lock ./
+COPY ccn-server/Pipfile ccn-server/Pipfile.lock ./ccn-server/
 
-RUN pip3 install --upgrade \
-        pipenv \
-    && pipenv install --system --deploy
+# Install and later run in a virtualenv to avoid conflicting with sawtooth python components.
+RUN pip3 install --upgrade pipenv \
+    && cd ccn-server \
+    && pipenv install --deploy
 
 ENV PYTHONPATH "/ccn-server"
 
@@ -34,3 +35,7 @@ ENV PYTHONPATH "/ccn-server"
 COPY dandelion-protocol/dandelion_protocol/ ./ccn-server/dandelion_protocol
 
 COPY ccn-server/ ./ccn-server
+
+WORKDIR /ccn-server
+
+CMD ["pipenv", "run", "python", "server/main.py"]
