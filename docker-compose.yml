@@ -65,6 +65,8 @@ services:
     container_name: ccn-server
     depends_on:
       - rest-api
+    working_dir: /ccn-server
+    entrypoint: "pipenv run python server/main.py"
 
   shell:
     image: hyperledger/sawtooth-all:1.0

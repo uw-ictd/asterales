@@ -35,7 +35,3 @@ ENV PYTHONPATH "/ccn-server"
 COPY dandelion-protocol/dandelion_protocol/ ./ccn-server/dandelion_protocol
 
 COPY ccn-server/ ./ccn-server
-
-WORKDIR /ccn-server
-
-CMD ["pipenv", "run", "python", "server/main.py"]
