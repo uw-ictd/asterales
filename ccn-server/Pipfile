@@ -7,6 +7,7 @@ name = "pypi"
 sawtooth-sdk = ">1.0,<1.1"
 flask = "*"
 requests = "*"
+pynacl = "*"
 
 [dev-packages]
 
