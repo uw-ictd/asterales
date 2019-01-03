@@ -1,7 +1,7 @@
 # Build from the project root directory context...
 # docker build -f crdt-tp-python/Dockerfile -t crdt-tp-python:local .
 
-# -------------=== crdt-tp-python build ===-------------
+# -------------=== crdt-tp-python deployment image ===-------------
 
 FROM ubuntu:bionic
 
