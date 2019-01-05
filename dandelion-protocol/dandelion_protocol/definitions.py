@@ -42,6 +42,7 @@ class ActionTypes(enum.Enum):
     SPEND = 2
     TOP_UP = 3
 
+
 def make_crdt_address(name):
     return FAMILY_METADATA['prefixes'][0] + hashlib.sha512(
         name.encode('utf-8')).hexdigest()[-64:]
@@ -62,3 +63,18 @@ def make_user_address(user_id):
     padded_id = user_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
 
     return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.USERS.value + padded_id
+
+
+def make_network_address(net_id):
+    try:
+        int(net_id, 16)
+    except ValueError:
+        raise ValueError('The NetworkId \'{}\' is not a valid hex string'.format(net_id))
+
+    if len(net_id) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
+        raise ValueError('The UserId must be at most {} hex characters \'{}\' is {} characters'.format(
+                _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, net_id, len(net_id)))
+    # Pad the user id out to the max length
+    padded_id = net_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
+
+    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.NETWORKS.value + padded_id

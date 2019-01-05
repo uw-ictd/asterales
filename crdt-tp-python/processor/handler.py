@@ -17,12 +17,14 @@
 import logging
 
 import cbor
+import nacl.signing
+import nacl.encoding
 
 from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from dandelion_protocol.definitions import ActionTypes, make_user_address
+from dandelion_protocol.definitions import ActionTypes, make_user_address, make_network_address
 from dandelion_protocol.definitions import FAMILY_METADATA
 
 
@@ -85,7 +87,7 @@ def _do_action(action, action_payload, context):
     if action == ActionTypes.ADD_USER:
         _add_user(action_payload, context)
     elif action == ActionTypes.ADD_NET:
-        raise NotImplementedError("The action" + str(action) + " is not supported yet.")
+        _add_net(action_payload, context)
     elif action == ActionTypes.SPEND:
         raise NotImplementedError("The action" + str(action) + " is not supported yet.")
     elif action == ActionTypes.TOP_UP:
@@ -106,6 +108,26 @@ def _add_user(serialized_payload, context):
 
     user_state = {'id': imsi, 'pub_key': pub_key, 'home_net': home_network}
     _set_state_data(address, user_state, context)
+
+
+def _add_net(serialized_payload, context):
+    # TODO(matt9j) Do a more safe deserialization.
+    # Parse the outer data layer from wire format
+    data = cbor.loads(serialized_payload)
+    raw_message = data['msg']
+    signature = data['network_sig']
+
+    # Parse the inner message from wire format
+    message = cbor.loads(raw_message)
+    key = nacl.signing.VerifyKey(message['key'], encoder=nacl.encoding.RawEncoder)
+    verified = key.verify(raw_message, signature, encoder=nacl.encoding.RawEncoder)
+
+    if not verified:
+        raise InvalidTransaction('Message failed network key validation')
+
+    # TODO(matt9j) ensure we are not blowing away existing state.
+    net_state = {'verify_key': message['key']}
+    _set_state_data(make_network_address(message['network_id']), net_state, context)
 
 
 def _parse_add_user(serialized_payload):
