@@ -45,9 +45,23 @@ class CrdtTransactionHandler(TransactionHandler):
         return FAMILY_METADATA['prefixes']
 
     def apply(self, transaction, context):
-        action, action_payload = _unpack_transaction(transaction)
+        try:
+            action, action_payload = _unpack_transaction(transaction)
 
-        _do_action(action, action_payload, context)
+            _do_action(action, action_payload, context)
+        # In Sawtooth (at least version 1.0.*) InternalErrors will result in
+        # a retry, InvalidTransaction errors will reject the block,
+        # and generic python errors will not be caught and will result in the
+        # transaction processor crashing.
+        except (InvalidTransaction, InternalError) as e:
+            # Directly forward any sawtooth exceptions
+            raise e
+        except Exception as e:
+            # Catch any non-sawtooth exceptions at a high level, and declare
+            # the transaction invalid. Clients may retry as needed.
+            LOGGER.exception(e)
+            raise InvalidTransaction("An unhandled transaction processing "
+                                     "exception occurred") from e
 
 
 def _unpack_transaction(transaction):
