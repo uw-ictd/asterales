@@ -51,11 +51,16 @@ def register_network():
     key = nacl.signing.VerifyKey(message['key'], encoder=nacl.encoding.RawEncoder)
     verified = key.verify(raw_message, signature, encoder=nacl.encoding.RawEncoder)
 
-    app.logger.info("Verified? %s", verified)
+    app.logger.debug("Verified? %s", verified)
     if not verified:
         raise IndexError()
 
-    return "Network key was verified."
+    # TODO(matt9j) Queue transactions when offline
+
+    # Format and submit the ledger transaction.
+    result = client.add_net(message['network_id'], request.data)
+
+    return result
 
 
 @app.route('/user/<user_id>')
@@ -212,10 +217,7 @@ class SawtoothClient(object):
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     signing_key, verify_key = initialize_crdt_key()
-    signed_message = signing_key.sign(b'hello')
-    print("signed message")
-    print(signed_message)
-    print(signed_message.signature)
-    print(signed_message.message)
+
+    client = SawtoothClient(url="http://rest-api:8008", keyfile="/root/.sawtooth/keys/root.priv")
     # TODO(matt9j) Remove debug flag before deployment
     app.run(debug=True, host='0.0.0.0', port=5000)
