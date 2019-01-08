@@ -66,6 +66,8 @@ services:
     container_name: ccn-server
     depends_on:
       - rest-api
+    ports:
+      - "5000:5000"
     working_dir: /ccn-server
     entrypoint: "bash -c \"\
       sawtooth keygen ; \
