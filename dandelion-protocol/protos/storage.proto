@@ -1,0 +1,76 @@
+syntax = "proto3";
+package dandelion.storage;
+
+// CommunityServer stores the public information required to represent a
+// community in the network.
+message CommunityServer {
+    // The numerical id of the community. This id must be unique across all
+    // communities and users.
+    // TODO(matt9j) The address may map directly to the ID so this field may not
+    // be needed.
+    int64 id = 1;
+
+    // The ed25519 public verification key corresponding to the community's held
+    // private key. This key validates transactions involving this community.
+    bytes verify_key = 2;
+
+    // A utf8 encoded display name of the community.
+    string display_name = 17;
+}
+
+// User stores the public information required to represent a mobile user of the
+// network.
+message User {
+    // The numerical id of the user. This id must be unique across all
+    // communities and users.
+    // TODO(matt9j) The address may map directly to the ID so this field may not
+    // be needed.
+    int64 id = 1;
+
+    // The ed25519 public verification key corresponding to this user's private
+    // signing key. This key can validate transactions involving this user.
+    bytes verify_key = 2;
+
+    // The numerical id of this user's home community.
+    bytes home_community_id = 3;
+
+    // A utf8 encoded display name of the user.
+    string display_name = 17;
+}
+
+// Exchange represents a single CRDT entry with metadata to support eventual
+// garbage collection. It is similar to the dandelion.Exchange message, except
+// compressed into a single message once wrapping signatures have been
+// validated.
+message ExchangeRecord {
+    // The numerical id of the sending party and receiving party. These must be
+    // valid communities or users.
+    int64 sender_id = 1;
+    // The numerical id of the receiving party. This must be a valid community
+    // or user.
+    int64 receiver_id = 2;
+
+    // The sequence numbers assigned to this exchange by the sender and receiver.
+    //
+    // Note: These sequence numbers may roll over.
+    uint64 sender_sequence_number = 3;
+    uint64 receiver_sequence_number = 4;
+
+    // The amount of the transaction.
+    //
+    // Note: Negative amounts are explicitly supported, but may break incentive
+    // compatibility of the signing order.
+    // TODO(matt9j) Handle fractional currency amounts.
+    int64 amount = 5;
+    // The currency of the transaction.
+    // TODO(matt9j) Support multiple currencies.
+    storage.Currency currency = 6;
+}
+
+// The currency represented in any given transaction.
+enum Currency {
+    UNKNOWN = 0;
+    NETWORK = 1;
+    USD = 2;
+}
+

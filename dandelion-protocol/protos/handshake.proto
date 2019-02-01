@@ -1,0 +1,107 @@
+syntax = "proto3";
+package dandelion;
+
+import "storage.proto";
+import "google/protobuf/timestamp.proto";
+
+// AddCommunity contains the signed information required to add a new community
+// to an existing federation.
+message AddCommunity {
+    // The anchor_id is the id of the anchor community who is endorsing the
+    // addition of this community to the network and the validity of the new
+    // community message.
+    int64 anchor_id = 1;
+    // The anchor_signature is a valid ed25519 signature over the new_community
+    // field from the anchor network.
+    bytes anchor_signature = 2;
+
+    // The new_community is a serialized `storage.CommunityServer` message. It is
+    // encoded as bytes to support protobuf implementations that do not allow
+    // straightforward access to the raw bytes for crypto verification after
+    // parsing.
+    bytes new_community = 3;
+}
+
+// AddUser contains the signed information required to add a new user to an
+// existing federation. The home network must have new user privileges with
+// the overall federation.
+message AddUser {
+    // The home_signature is a valid ed25519 signature over the new_user field
+    // from the home network. The home network id must be parsed from the
+    // new_user message to validate this signature.
+    bytes home_signature = 1;
+
+    // The new_user is a serialized `storage.User` message. It is encoded as
+    // bytes to support protobuf implementations that do not allow
+    // straightforward access to the raw bytes for crypto verification after
+    // parsing.
+    bytes new_user = 2;
+}
+
+// Exchange contains a co-signed transaction indicating a transfer of
+// credits from one entity to another. Both signatures must be
+// valid before acceptance into the crdt. The complete exchange consists of a
+// double wrapped inner message, a single wrapped mid-layer message, and the
+// final outer message.
+//
+// TODO(matt9j) Make some ascii art depicting the message encapsulation.
+message Exchange {
+    // The valid ed25519 signature from the receiver over the exchange record.
+    // Should be 64 bytes in length.
+    bytes receiver_signature = 1;
+
+    // The partial_exchange is the raw bytes of a serialized PartialExchange
+    // message.
+    bytes partial_exchange = 2;
+
+    // The PartialExchange wraps a serialized core exchange with the
+    // sender signature and receiver metadata fields..
+    message Partial {
+        // The valid ed25519 signature from the sender over the partial_exchange.
+        // Should be 64 bytes in length.
+        bytes sender_signature = 1;
+
+        // The core_exchange contains a raw serialized Core
+        bytes core_exchange = 2;
+
+        // The receiver_sequence_number is assigned to this exchange by the receiver.
+        //
+        // Note: The sequence number may roll over.
+        uint64 receiver_sequence_number = 4;
+    }
+
+    // The Core contains the sender's portion of the exchange message, including
+    // the recipient ID and the timestamp of when the exchange occurred.
+    message Core {
+        // The numerical id of the sending party and receiving party. These must be
+        // valid communities or users.
+        int64 sender_id = 1;
+        // The numerical id of the receiving party. This must be a valid community
+        // or user.
+        int64 receiver_id = 2;
+
+        // The sequence number assigned to this exchange by the sender
+        //
+        // Note: The sequence number may roll over.
+        uint64 sender_sequence_number = 3;
+
+        // The amount of the transaction.
+        //
+        // Note: Negative amounts are explicitly supported, but may break incentive
+        // compatibility of the signing order.
+        // TODO(matt9j) Handle fractional currency amounts.
+        int64 amount = 4;
+        // The currency of the transaction.
+        // TODO(matt9j) Support multiple currencies.
+        storage.Currency currency = 5;
+
+        // A universal timestamp. Parties must agree on a monotonically increasing
+        // timestamp to mitigate attacks on sequence number rollover. Proposed
+        // exchanges with suspiciously stale timestamps will be rejected outright,
+        // and the timestamp of last rollover will be tracked per entity.
+        // TODO(matt9j) This maybe could be eliminated from the over the wire
+        // message by keeping a count per user or a window begin to detect malicious
+        // rollover too.
+        google.protobuf.Timestamp timestamp = 6;
+    }
+}
