@@ -1,5 +1,5 @@
 syntax = "proto3";
-package dandelion;
+package asterales;
 
 import "storage.proto";
 import "google/protobuf/timestamp.proto";

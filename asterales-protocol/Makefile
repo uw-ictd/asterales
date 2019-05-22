@@ -4,7 +4,7 @@ VERSION=$(shell git describe)
 PROTO_DIRECTORY=./protos/
 PROTO_SOURCES=$(shell find $(PROTO_DIRECTORY) -name "*.proto")
 
-PYTHON_OUT_PATH=dandelion_protocol/messages/
+PYTHON_OUT_PATH=asterales_protocol/messages/
 PYTHON_GEN_FILES=$(basename $(notdir $(PROTO_SOURCES)))
 PYTHON_OUTS=$(addprefix $(PYTHON_OUT_PATH), $(addsuffix _pb2.py, $(PYTHON_GEN_FILES)))
 

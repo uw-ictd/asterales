@@ -12,7 +12,7 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from dandelion_protocol.definitions import ActionTypes, make_network_address
+from asterales_protocol.definitions import ActionTypes, make_network_address
 import hashlib
 import time
 import requests

@@ -32,6 +32,6 @@ ENV PYTHONPATH "/ccn-server"
 
 # Add the python protocol dependencies
 # TODO(matt9j) Eventually move to a more structured language independent protocol like protobuf
-COPY dandelion-protocol/dandelion_protocol/ ./ccn-server/dandelion_protocol
+COPY asterales-protocol/asterales_protocol/ ./ccn-server/asterales_protocol
 
 COPY ccn-server/ ./ccn-server

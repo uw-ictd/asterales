@@ -24,8 +24,8 @@ from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from dandelion_protocol.definitions import ActionTypes, make_user_address, make_network_address
-from dandelion_protocol.definitions import FAMILY_METADATA
+from asterales_protocol.definitions import ActionTypes, make_user_address, make_network_address
+from asterales_protocol.definitions import FAMILY_METADATA
 
 
 LOGGER = logging.getLogger(__name__)

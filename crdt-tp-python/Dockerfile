@@ -31,6 +31,6 @@ ENV PYTHONPATH "/crdt-tp-python"
 
 # Add the python protocol dependencies
 # TODO(matt9j) Eventually move to a more structured language independent protocol like protobuf
-COPY dandelion-protocol/dandelion_protocol/ ./crdt-tp-python/dandelion_protocol
+COPY asterales-protocol/asterales_protocol/ ./crdt-tp-python/asterales_protocol
 
 COPY crdt-tp-python/ ./crdt-tp-python

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package dandelion.storage;
+package asterales.storage;
 
 // CommunityServer stores the public information required to represent a
 // community in the network.
@@ -39,7 +39,7 @@ message User {
 }
 
 // Exchange represents a single CRDT entry with metadata to support eventual
-// garbage collection. It is similar to the dandelion.Exchange message, except
+// garbage collection. It is similar to the asterales.Exchange message, except
 // compressed into a single message once wrapping signatures have been
 // validated.
 message ExchangeRecord {

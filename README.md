@@ -1,15 +1,15 @@
-# dandelion-hss
+# asterales-hss
 A distributed HSS based on sharing of single use auth tokens
 
 # Building
 
-dandelion uses containerized build and run environments. To run with a default test
+asterales uses containerized build and run environments. To run with a default test
 network and a locally built CRDT processor, simply run `docker-compose build` and
 `docker-compose up` from the root directory.
 
 ## Manually building Dockerfiles
 
-The dockerfiles are kind of a mess right now, since the dandelion protocol common "library" is included in multiple
+The dockerfiles are kind of a mess right now, since the asterales protocol common "library" is included in multiple
 images via copying into each image. This means that the container build context needs to be the root project directory,
 not the subdirectories where the dockerfiles for each image lie. The docker-compose file takes care of all this for you,
 but if you need build manually you have been warned.
