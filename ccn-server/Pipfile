@@ -13,3 +13,5 @@ cbor = "*"
 [dev-packages]
 
 [requires]
+# TODO Require a specific python version when base image updated.
+# python_version = "3.7"
