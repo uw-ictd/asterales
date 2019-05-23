@@ -64,14 +64,20 @@ message Exchange {
         // The core_exchange contains a raw serialized Core
         bytes core_exchange = 2;
 
-        // The receiver_sequence_number is assigned to this exchange by the receiver.
+        // The receiver_previous_valid_sequence_number is reported by the receiver.
         //
-        // Note: The sequence number may roll over.
-        uint64 receiver_sequence_number = 4;
+        // The previous valid sequence number must be a valid CRDT record. It
+        // can be used to identify holes in the sequence number series.
+        //
+        // Note: The sequence number may not roll over.
+        uint64 receiver_previous_valid_sequence_number_lsb = 3;
+        uint64 receiver_previous_valid_sequence_number_msb = 4;
     }
 
     // The Core contains the sender's portion of the exchange message, including
-    // the recipient ID and the timestamp of when the exchange occurred.
+    // the recipient ID and the timestamp of when the exchange occurred. The
+    // receiver sequence number is assigned by the receiver and tied to this
+    // specific exchange message.
     message Core {
         // The numerical id of the sending party and receiving party. These must be
         // valid communities or users.
@@ -80,28 +86,20 @@ message Exchange {
         // or user.
         int64 receiver_id = 2;
 
-        // The sequence number assigned to this exchange by the sender
+        // The sequence number assigned to this exchange by the receiver.
         //
-        // Note: The sequence number may roll over.
-        uint64 sender_sequence_number = 3;
+        // Note: The sequence number may not roll over.
+        uint64 receiver_sequence_number_lsb = 3;
+        uint64 receiver_sequence_number_msb = 4;
 
         // The amount of the transaction.
         //
         // Note: Negative amounts are explicitly supported, but may break incentive
         // compatibility of the signing order.
         // TODO(matt9j) Handle fractional currency amounts.
-        int64 amount = 4;
+        int64 amount = 5;
         // The currency of the transaction.
         // TODO(matt9j) Support multiple currencies.
-        storage.Currency currency = 5;
-
-        // A universal timestamp. Parties must agree on a monotonically increasing
-        // timestamp to mitigate attacks on sequence number rollover. Proposed
-        // exchanges with suspiciously stale timestamps will be rejected outright,
-        // and the timestamp of last rollover will be tracked per entity.
-        // TODO(matt9j) This maybe could be eliminated from the over the wire
-        // message by keeping a count per user or a window begin to detect malicious
-        // rollover too.
-        google.protobuf.Timestamp timestamp = 6;
+        storage.Currency currency = 6;
     }
 }

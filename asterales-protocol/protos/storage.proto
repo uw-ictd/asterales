@@ -52,9 +52,9 @@ message ExchangeRecord {
 
     // The sequence numbers assigned to this exchange by the sender and receiver.
     //
-    // Note: These sequence numbers may roll over.
-    uint64 sender_sequence_number = 3;
-    uint64 receiver_sequence_number = 4;
+    // Note: These sequence numbers are not permitted to roll over.
+    uint64 receiver_sequence_number_lsb = 3;
+    uint64 receiver_sequence_number_msb = 4;
 
     // The amount of the transaction.
     //
@@ -62,9 +62,19 @@ message ExchangeRecord {
     // compatibility of the signing order.
     // TODO(matt9j) Handle fractional currency amounts.
     int64 amount = 5;
+
     // The currency of the transaction.
     // TODO(matt9j) Support multiple currencies.
     storage.Currency currency = 6;
+
+    // The previous_valid_sequence_number issued by the receiver.
+    //
+    // The previous valid sequence number must be a valid CRDT record. It
+    // can be used to identify holes in the sequence number series.
+    //
+    // Note: The sequence number may not roll over.
+    uint64 receiver_previous_valid_sequence_number_lsb = 7;
+    uint64 receiver_previous_valid_sequence_number_msb = 8;
 }
 
 // The currency represented in any given transaction.
