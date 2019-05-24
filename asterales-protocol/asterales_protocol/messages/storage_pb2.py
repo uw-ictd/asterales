@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='asterales.storage',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rstorage.proto\x12\x11\x61sterales.storage\"G\n\x0f\x43ommunityServer\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x14\n\x0c\x64isplay_name\x18\x11 \x01(\t\"W\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x19\n\x11home_community_id\x18\x03 \x01(\x0c\x12\x14\n\x0c\x64isplay_name\x18\x11 \x01(\t\"\xad\x02\n\x0e\x45xchangeRecord\x12\x11\n\tsender_id\x18\x01 \x01(\x03\x12\x13\n\x0breceiver_id\x18\x02 \x01(\x03\x12$\n\x1creceiver_sequence_number_lsb\x18\x03 \x01(\x04\x12$\n\x1creceiver_sequence_number_msb\x18\x04 \x01(\x04\x12\x0e\n\x06\x61mount\x18\x05 \x01(\x03\x12-\n\x08\x63urrency\x18\x06 \x01(\x0e\x32\x1b.asterales.storage.Currency\x12\x33\n+receiver_previous_valid_sequence_number_lsb\x18\x07 \x01(\x04\x12\x33\n+receiver_previous_valid_sequence_number_msb\x18\x08 \x01(\x04*-\n\x08\x43urrency\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07NETWORK\x10\x01\x12\x07\n\x03USD\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\rstorage.proto\x12\x11\x61sterales.storage\"G\n\x0f\x43ommunityServer\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x14\n\x0c\x64isplay_name\x18\x11 \x01(\t\"W\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x19\n\x11home_community_id\x18\x03 \x01(\x03\x12\x14\n\x0c\x64isplay_name\x18\x11 \x01(\t\"\xad\x02\n\x0e\x45xchangeRecord\x12\x11\n\tsender_id\x18\x01 \x01(\x03\x12\x13\n\x0breceiver_id\x18\x02 \x01(\x03\x12$\n\x1creceiver_sequence_number_lsb\x18\x03 \x01(\x04\x12$\n\x1creceiver_sequence_number_msb\x18\x04 \x01(\x04\x12\x0e\n\x06\x61mount\x18\x05 \x01(\x03\x12-\n\x08\x63urrency\x18\x06 \x01(\x0e\x32\x1b.asterales.storage.Currency\x12\x33\n+receiver_previous_valid_sequence_number_lsb\x18\x07 \x01(\x04\x12\x33\n+receiver_previous_valid_sequence_number_msb\x18\x08 \x01(\x04*-\n\x08\x43urrency\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07NETWORK\x10\x01\x12\x07\n\x03USD\x10\x02\x62\x06proto3')
 )
 
 _CURRENCY = _descriptor.EnumDescriptor(
@@ -125,8 +125,8 @@ _USER = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='home_community_id', full_name='asterales.storage.User.home_community_id', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      number=3, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),

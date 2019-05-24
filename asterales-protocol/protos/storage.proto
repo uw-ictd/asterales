@@ -32,7 +32,7 @@ message User {
     bytes verify_key = 2;
 
     // The numerical id of this user's home community.
-    bytes home_community_id = 3;
+    int64 home_community_id = 3;
 
     // A utf8 encoded display name of the user.
     string display_name = 17;
