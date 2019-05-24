@@ -24,8 +24,10 @@ from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from asterales_protocol.definitions import ActionTypes, make_user_address, make_network_address
+from asterales_protocol.definitions import ActionTypes, make_user_address, make_network_address_from_int
 from asterales_protocol.definitions import FAMILY_METADATA
+import asterales_protocol.messages.handshake_pb2 as handshake_pb2
+import asterales_protocol.messages.storage_pb2 as storage_pb2
 
 
 LOGGER = logging.getLogger(__name__)
@@ -124,47 +126,45 @@ def _add_user(serialized_payload, context):
     _set_state_data(address, user_state, context)
 
 
-def _add_net(serialized_payload, context):
+def _add_net(action_payload, context):
     # TODO(matt9j) Do a more safe deserialization.
     # Parse the outer data layer from wire format
-    data = cbor.loads(serialized_payload)
-    raw_message = data['msg']
-    signature = data['network_sig']
+    anchor_id, message_sig, community_id, new_community_blob = \
+        _parse_add_community(action_payload)
 
-    # Parse the inner message from wire format
-    message = cbor.loads(raw_message)
-    key = nacl.signing.VerifyKey(message['key'], encoder=nacl.encoding.RawEncoder)
-    verified = key.verify(raw_message, signature, encoder=nacl.encoding.RawEncoder)
-
+    # TODO(matt9j) Validate the anchor and signature
+    verified = True
+    #     key = nacl.signing.VerifyKey(message['key'],
+    #     encoder=nacl.encoding.RawEncoder)
+    #     verified = key.verify(raw_message, signature,
+    #     encoder=nacl.encoding.RawEncoder)
     if not verified:
         raise InvalidTransaction('Message failed network key validation')
 
-    # TODO(matt9j) ensure we are not blowing away existing state.
-    net_state = {'verify_key': message['key']}
-    _set_state_data(make_network_address(message['network_id']), net_state, context)
+    # TODO(matt9j) ensure we are not blowing away existing state by double-adding a community.
+    _set_state_data(make_network_address_from_int(community_id),
+                    new_community_blob,
+                    context)
+
+def _parse_add_community(action_payload):
+    # Parse outer message
+    add_community_payload = handshake_pb2.AddCommunity()
+    add_community_payload.ParseFromString(action_payload)
+
+    anchor_id = add_community_payload.anchor_id
+    message_sig = add_community_payload.anchor_signature
+
+    new_community_info = storage_pb2.CommunityServer()
+    new_community_info.ParseFromString(add_community_payload.new_community)
+
+    community_id = new_community_info.id
+
+    return anchor_id, message_sig, community_id, add_community_payload.new_community
 
 
 def _parse_add_user(serialized_payload):
     """Deserialize the add user payload"""
-    try:
-        payload = cbor.loads(serialized_payload)
-    except:
-        raise InvalidTransaction('Invalid user add payload serialization')
-
-    try:
-        imsi = payload['imsi']
-    except AttributeError:
-        raise InvalidTransaction('The new user imsi is required')
-
-    try:
-        pub_key = payload['pub_key']
-    except AttributeError:
-        raise InvalidTransaction('The new user public key is required')
-
-    try:
-        home_network = payload['home_net']
-    except AttributeError:
-        raise InvalidTransaction('The new user home network is required')
+    raise NotImplementedError("no users with protobuf yet.")
 
     return imsi, pub_key, home_network
 
@@ -173,15 +173,13 @@ def _get_state_data(address, context):
     state_entries = context.get_state([address])
 
     try:
-        return cbor.loads(state_entries[0].data)
+        return state_entries[0].data
     except IndexError:
         return {}
 
 
-def _set_state_data(address, state, context):
-    encoded = cbor.dumps(state)
-
-    addresses = context.set_state({address: encoded})
+def _set_state_data(address, state_payload, context):
+    addresses = context.set_state({address: state_payload})
 
     if not addresses:
         raise InternalError('State error')

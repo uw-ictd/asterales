@@ -31,7 +31,6 @@ RUN pip3 install --upgrade pipenv \
 ENV PYTHONPATH "/ccn-server"
 
 # Add the python protocol dependencies
-# TODO(matt9j) Eventually move to a more structured language independent protocol like protobuf
 COPY asterales-protocol/asterales_protocol/ ./ccn-server/asterales_protocol
 
 COPY ccn-server/ ./ccn-server

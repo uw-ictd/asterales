@@ -65,7 +65,7 @@ def make_user_address(user_id):
     return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.USERS.value + padded_id
 
 
-def make_network_address(net_id):
+def make_network_address_from_hex(net_id):
     try:
         int(net_id, 16)
     except ValueError:
@@ -78,3 +78,7 @@ def make_network_address(net_id):
     padded_id = net_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
 
     return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.NETWORKS.value + padded_id
+
+def make_network_address_from_int(id_int):
+    net_id = '{:X}'.format(id_int)
+    return make_network_address_from_hex(net_id)

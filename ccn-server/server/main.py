@@ -12,7 +12,9 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from asterales_protocol.definitions import ActionTypes, make_network_address
+from asterales_protocol.definitions import ActionTypes, make_network_address_from_int
+import asterales_protocol.messages.storage_pb2 as storage_pb2
+import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import hashlib
 import time
 import requests
@@ -34,7 +36,7 @@ def register_user():
     raise NotImplementedError()
 
 
-@app.route('/register/network', methods=['POST'])
+@app.route('/register/community', methods=['POST'])
 def register_network():
     app.logger.debug("got register network")
     app.logger.debug("Method is %s", request.method)
@@ -42,23 +44,13 @@ def register_network():
     app.logger.debug(request.content_type)
     app.logger.debug(request.content_encoding)
     # Parse the outer data layer from wire format
-    data = cbor.loads(request.data)
-    raw_message = data['msg']
-    signature = data['network_sig']
-
-    # Parse the inner message from wire format
-    message = cbor.loads(raw_message)
-    key = nacl.signing.VerifyKey(message['key'], encoder=nacl.encoding.RawEncoder)
-    verified = key.verify(raw_message, signature, encoder=nacl.encoding.RawEncoder)
-
-    app.logger.debug("Verified? %s", verified)
-    if not verified:
-        raise IndexError()
+    new_community_data = request.data
+    community_id = _parse_id_from_add_community(new_community_data)
 
     # TODO(matt9j) Queue transactions when offline
 
     # Format and submit the ledger transaction.
-    result = client.add_net(message['network_id'], request.data)
+    result = client.add_community(community_id, request.data)
 
     return result
 
@@ -89,6 +81,19 @@ def initialize_crdt_key():
     return signing_key, signing_key.verify_key
 
 
+def _parse_id_from_add_community(action_payload):
+    # Parse outer message
+    add_community_payload = handshake_pb2.AddCommunity()
+    add_community_payload.ParseFromString(action_payload)
+
+    new_community_info = storage_pb2.CommunityServer()
+    new_community_info.ParseFromString(add_community_payload.new_community)
+
+    community_id = new_community_info.id
+
+    return community_id
+
+
 class CrdtClientException(Exception):
     pass
 
@@ -107,9 +112,10 @@ class SawtoothClient(object):
             self._signer = CryptoFactory(
                 create_context('secp256k1')).new_signer(sawtooth_signing_key)
 
-    def add_net(self, network_id, payload, wait=None):
-        address = make_network_address(network_id)
-        return self._send_transaction(ActionTypes.ADD_NET.value, payload, [address], wait=wait)
+    def add_community(self, network_id, payload, wait=None):
+        address = make_network_address_from_int(network_id)
+        return self._send_transaction(ActionTypes.ADD_NET.value, payload,
+                                      [address], wait=wait)
 
     def _send_transaction(self, action, action_payload, addresses, wait=None):
         payload = cbor.dumps({
