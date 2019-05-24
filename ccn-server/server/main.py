@@ -12,7 +12,7 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from asterales_protocol.definitions import ActionTypes, make_network_address_from_int
+from asterales_protocol.definitions import ActionTypes, make_network_address_from_int, make_user_address_from_int
 import asterales_protocol.messages.storage_pb2 as storage_pb2
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import hashlib
@@ -33,7 +33,11 @@ def hello_world():
 
 @app.route('/register/user', methods=['POST'])
 def register_user():
-    raise NotImplementedError()
+    app.logger.debug("got register network")
+    new_user_blob = request.data
+    user_id = _parse_user_id_from_add_user(new_user_blob)
+    result = client.add_user(user_id, request.data)
+    return result
 
 
 @app.route('/register/community', methods=['POST'])
@@ -94,6 +98,16 @@ def _parse_id_from_add_community(action_payload):
     return community_id
 
 
+def _parse_user_id_from_add_user(add_user_blob):
+    add_user_payload = handshake_pb2.AddUser()
+    add_user_payload.ParseFromString(add_user_blob)
+
+    new_user_info = storage_pb2.User()
+    new_user_info.ParseFromString(add_user_payload.new_user)
+
+    return new_user_info.id
+
+
 class CrdtClientException(Exception):
     pass
 
@@ -115,6 +129,11 @@ class SawtoothClient(object):
     def add_community(self, network_id, payload, wait=None):
         address = make_network_address_from_int(network_id)
         return self._send_transaction(ActionTypes.ADD_NET.value, payload,
+                                      [address], wait=wait)
+
+    def add_user(self, user_id, payload, wait=None):
+        address = make_user_address_from_int(user_id)
+        return self._send_transaction(ActionTypes.ADD_USER.value, payload,
                                       [address], wait=wait)
 
     def _send_transaction(self, action, action_payload, addresses, wait=None):

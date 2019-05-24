@@ -24,7 +24,7 @@ from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from asterales_protocol.definitions import ActionTypes, make_user_address, make_network_address_from_int
+from asterales_protocol.definitions import ActionTypes, make_user_address_from_int, make_network_address_from_int
 from asterales_protocol.definitions import FAMILY_METADATA
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import asterales_protocol.messages.storage_pb2 as storage_pb2
@@ -113,17 +113,15 @@ def _do_action(action, action_payload, context):
 
 
 def _add_user(serialized_payload, context):
-    imsi, pub_key, home_network = _parse_add_user(serialized_payload)
-    # TODO(matt9j) Validate the user signature against the public key!
+    home_id, blob_sig, user_id, user_blob = _parse_add_user(serialized_payload)
     # TODO(matt9j) Validate the network signature against the known home network key!
 
-    address = make_user_address(imsi)
+    address = make_user_address_from_int(user_id)
     data = _get_state_data(address, context)
     if data:
-        raise InvalidTransaction('The user {} already exists'.format(imsi))
+        raise InvalidTransaction('The user {} already exists'.format(user_id))
 
-    user_state = {'id': imsi, 'pub_key': pub_key, 'home_net': home_network}
-    _set_state_data(address, user_state, context)
+    _set_state_data(address, user_blob, context)
 
 
 def _add_net(action_payload, context):
@@ -162,11 +160,18 @@ def _parse_add_community(action_payload):
     return anchor_id, message_sig, community_id, add_community_payload.new_community
 
 
-def _parse_add_user(serialized_payload):
+def _parse_add_user(add_user_blob):
     """Deserialize the add user payload"""
-    raise NotImplementedError("no users with protobuf yet.")
+    add_user_payload = handshake_pb2.AddUser()
+    add_user_payload.ParseFromString(add_user_blob)
+    blob_sig = add_user_payload.home_signature
 
-    return imsi, pub_key, home_network
+    new_user_info = storage_pb2.User()
+    new_user_info.ParseFromString(add_user_payload.new_user)
+    home_id = new_user_info.home_community_id
+    user_id = new_user_info.id
+
+    return home_id, blob_sig, user_id, add_user_payload.new_user
 
 
 def _get_state_data(address, context):

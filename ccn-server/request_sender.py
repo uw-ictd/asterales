@@ -33,17 +33,30 @@ def add_community(signing_key, verify_key):
         print(line)
 
 
-#def add_user():
- #   """Add a test user to the network."""
+def add_user(community_signing_key, user_signing_key, user_verify_key):
+    """Add a test user to the network."""
 
+    new_user_info = storage.User()
+    new_user_info.id = 1
+    new_user_info.verify_key = user_verify_key.encode(encoder=nacl.encoding.RawEncoder)
+    new_user_info.display_name = "New User One".encode('utf8')
+    new_user_info.home_community_id = 1
 
+    new_user_blob = new_user_info.SerializeToString()
+    signature = community_signing_key.sign(new_user_blob).signature
 
+    add_user_message = handshake.AddUser()
+    add_user_message.new_user = new_user_blob
+    add_user_message.home_signature = signature
 
-#binary_test = test.SerializeToString()
+    binary_add_user = add_user_message.SerializeToString()
+    res = requests.post(url="http://localhost:5000/register/user",
+                        data=binary_add_user,
+                        headers={'Content-Type': 'application/octet-stream'})
 
-#message_container = handshake.AddCommunity()
-
-#newMessasge = message_container.ParseFromString(binary_test)
+    print(res)
+    for line in res.iter_lines():
+        print(line)
 
 
 # Generate an exchange between the user and community.
@@ -59,4 +72,4 @@ if __name__ == "__main__":
     user_signing_key = nacl.signing.SigningKey.generate()
     user_verify_key = user_signing_key.verify_key
 
-    #add_user()
+    add_user(community_signing_key, user_signing_key, user_verify_key)
