@@ -69,6 +69,45 @@ def backhaul_status():
     raise NotImplementedError()
 
 
+# Endorse an exchange where the community server sends funds to the receiver.
+@app.route('/exchange/initiateSend', methods=['POST'])
+def initiate_send():
+    # TODO(matt9j) do a more safe deserialization.
+    receiver_data = cbor.loads(request.data)
+
+    receiver_id = receiver_data['receiver_id']
+    # TODO(matt9j) Validate the sequence number is sane.
+    receiver_sequence_number = (receiver_data['sequence_msb'] ** 64 +
+                                receiver_data['sequence_lsb'])
+    amount = receiver_data['amount']
+    # TODO(matt9j) support multiple currencies.
+
+    exchange_core_proto = handshake_pb2.Exchange.Core()
+    # TODO(matt9j) Use this network's sender ID.
+    # TODO(matt9j) UI Validation that we actually want to send!
+    exchange_core_proto.sender_id = 1
+    exchange_core_proto.receiver_id = receiver_id
+    exchange_core_proto.receiver_sequence_number_lsb = receiver_data['sequence_lsb']
+    exchange_core_proto.receiver_sequence_number_msb = receiver_data['sequence_msb']
+    exchange_core_proto.amount = amount
+
+    exchange_core_blob = exchange_core_proto.SerializeToString()
+
+    partial_exchange = handshake_pb2.Exchange.Partial()
+    # TODO(matt9j) Inject the signing key dependency for testing.
+    partial_exchange.sender_signature = signing_key.sign(exchange_core_blob, encoder=nacl.encoding.RawEncoder)
+    partial_exchange.core_exchange = exchange_core_blob
+
+    partial_exchange_blob = partial_exchange.SerializeToString()
+
+    return partial_exchange_blob
+
+
+@app.route('/exchange/ledgerCrdtUpload', methods=['POST'])
+def ledger_crdt_upload():
+    raise NotImplementedError()
+
+
 def initialize_crdt_key():
     try:
         with open("crdt_network_key.priv", "rb") as f:

@@ -1,3 +1,4 @@
+import cbor
 import requests
 
 import nacl.signing
@@ -33,11 +34,11 @@ def add_community(signing_key, verify_key):
         print(line)
 
 
-def add_user(community_signing_key, user_signing_key, user_verify_key):
+def add_user(community_signing_key, user_signing_key, user_verify_key, user_id):
     """Add a test user to the network."""
 
     new_user_info = storage.User()
-    new_user_info.id = 1
+    new_user_info.id = user_id
     new_user_info.verify_key = user_verify_key.encode(encoder=nacl.encoding.RawEncoder)
     new_user_info.display_name = "New User One".encode('utf8')
     new_user_info.home_community_id = 1
@@ -60,6 +61,64 @@ def add_user(community_signing_key, user_signing_key, user_verify_key):
 
 
 # Generate an exchange between the user and community.
+def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
+                               community_verify_key):
+    """Transfer funds from the community to the user.
+
+    Since the user is receiving, the user is responsible for ensuring the
+    upload succeeds and picking a valid crdt sqn.
+    """
+    if user_crdt_sqn < 0:
+        raise ValueError("the sequence number must be positive")
+
+    sequence_lsb = user_crdt_sqn & 0xFFFFFFFFFFFFFFFF
+    sequence_msb = user_crdt_sqn >> 64
+
+    send_request = {"receiver_id": user_id,
+                    "sequence_lsb": sequence_lsb,
+                    "sequence_msb": sequence_msb,
+                    "amount": amount
+                    }
+
+    serialized_send_request = cbor.dumps(send_request)
+    initiate_response = requests.post(
+        url="http://localhost:5000/exchange/initiateSend",
+        data=serialized_send_request,
+        headers={'Content-Type': 'application/octet-stream'})
+
+    if not initiate_response.ok:
+        print(initiate_response)
+        for line in initiate_response.iter_lines():
+            print(line)
+        raise RuntimeError("the transfer was rejected by the community server")
+
+    partial_exchange_blob = initiate_response.content
+
+    partial_exchange = handshake.Exchange.Partial()
+    partial_exchange.ParseFromString(partial_exchange_blob)
+
+    # TODO(matt9j) Validate and lookup the community key.
+    #community_verify_key.verify(partial_exchange.core_exchange,
+    #                            partial_exchange.sender_signature)
+    # TODO(matt9j) Validate core blob actually matches what we wanted to do.
+
+    # TODO(matt9j) Handle SQN gaps once processing is allowed in parallel.
+    full_exchange = handshake.Exchange()
+    full_exchange.partial_exchange = partial_exchange_blob
+    full_exchange.receiver_signature = user_signing_key.sign(
+        partial_exchange_blob,
+        encoder=nacl.encoding.RawEncoder)
+
+    full_exchange_blob = full_exchange.SerializeToString()
+
+    upload_response = requests.post(
+        url="http://localhost:5000/exchange/ledgerCrdtUpload",
+        data=full_exchange_blob,
+        headers={'Content-Type': 'application/octet-stream'})
+
+    print(upload_response)
+    for line in upload_response.iter_lines():
+        print(line)
 
 
 if __name__ == "__main__":
@@ -71,5 +130,12 @@ if __name__ == "__main__":
     # Generate the key for the user.
     user_signing_key = nacl.signing.SigningKey.generate()
     user_verify_key = user_signing_key.verify_key
+    user_id = 1
 
-    add_user(community_signing_key, user_signing_key, user_verify_key)
+    add_user(community_signing_key, user_signing_key, user_verify_key, user_id)
+
+    transfer_community_to_user(user_id=user_id,
+                               user_crdt_sqn=1337,
+                               amount=42,
+                               user_signing_key=user_signing_key,
+                               community_verify_key=community_verify_key)
