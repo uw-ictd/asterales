@@ -24,7 +24,8 @@ from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from asterales_protocol.definitions import ActionTypes, make_user_address_from_int, make_network_address_from_int
+from asterales_protocol.definitions import ActionTypes,\
+    make_user_address_from_int, make_network_address_from_int, make_crdt_address
 from asterales_protocol.definitions import FAMILY_METADATA
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import asterales_protocol.messages.storage_pb2 as storage_pb2
@@ -104,12 +105,34 @@ def _do_action(action, action_payload, context):
         _add_user(action_payload, context)
     elif action == ActionTypes.ADD_NET:
         _add_net(action_payload, context)
-    elif action == ActionTypes.SPEND:
-        raise NotImplementedError("The action" + str(action) + " is not supported yet.")
-    elif action == ActionTypes.TOP_UP:
-        raise NotImplementedError("The action" + str(action) + " is not supported yet.")
+    elif action == ActionTypes.ADD_LEDGER_CRDT:
+        _add_ledger_crdt(action_payload, context)
     else:
         raise NotImplementedError("The action" + str(action) + " is not supported yet.")
+
+
+def _add_ledger_crdt(action_payload, context):
+    """Add a crdt record to the on-chain crdt implementation."""
+    # TODO(matt9j) XXX do it.
+    # Parse the receive ID and receive sqn for now
+    receive_id = 1
+    receive_sqn = 1
+
+    # TODO(matt9j) handle gaps in the receive SQN?
+    address = make_crdt_address(receive_id)
+    current_crdt_blob = _get_state_data(address, context)
+
+    if current_crdt_blob is not None:
+        crdt_history = cbor.loads(current_crdt_blob)
+    else:
+        crdt_history = []
+
+    if receive_sqn in crdt_history:
+        LOGGER.info("discarding duplicate upload %d", receive_sqn)
+        return
+
+    crdt_history.append(receive_sqn)
+    _set_state_data(address, cbor.dumps(crdt_history), context)
 
 
 def _add_user(serialized_payload, context):

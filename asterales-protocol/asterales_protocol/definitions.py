@@ -33,19 +33,28 @@ class ChainStructureTag(enum.Enum):
     USERS = '0000'
     NETWORKS = '0001'
     CRDT = '0002'
+    ENTITY_BALANCE = '0003'
 
 
 class ActionTypes(enum.Enum):
     """The types of messages available for processing"""
     ADD_USER = 0
     ADD_NET = 1
-    SPEND = 2
+    ADD_LEDGER_CRDT = 2
     TOP_UP = 3
 
 
-def make_crdt_address(name):
-    return FAMILY_METADATA['prefixes'][0] + hashlib.sha512(
-        name.encode('utf-8')).hexdigest()[-64:]
+def make_crdt_address(entity_id):
+    id_string = '{:X}'.format(entity_id)
+
+    if len(id_string) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
+        raise ValueError('The CRDTId must be at most {} hex characters \'{}\' is {} characters'.format(
+        _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, id_string, len(id_string)))
+
+    # Pad the user id out to the max length
+    padded_id = id_string.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
+
+    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.CRDT.value + padded_id
 
 
 def make_user_address(user_id):

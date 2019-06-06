@@ -12,7 +12,7 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from asterales_protocol.definitions import ActionTypes, make_network_address_from_int, make_user_address_from_int
+from asterales_protocol.definitions import ActionTypes, make_network_address_from_int, make_user_address_from_int, make_crdt_address
 import asterales_protocol.messages.storage_pb2 as storage_pb2
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import hashlib
@@ -105,7 +105,9 @@ def initiate_send():
 
 @app.route('/exchange/ledgerCrdtUpload', methods=['POST'])
 def ledger_crdt_upload():
-    raise NotImplementedError()
+    # TODO(matt9j) XXX remove the constant factor
+    result = client.add_crdt_record(1, request.data)
+    return result
 
 
 def initialize_crdt_key():
@@ -164,6 +166,11 @@ class SawtoothClient(object):
 
             self._signer = CryptoFactory(
                 create_context('secp256k1')).new_signer(sawtooth_signing_key)
+
+    def add_crdt_record(self, receive_entity, crdt_record, wait=None):
+        address = make_crdt_address(receive_entity)
+        return self._send_transaction(ActionTypes.ADD_LEDGER_CRDT.value,
+                                      crdt_record, [address], wait=wait)
 
     def add_community(self, network_id, payload, wait=None):
         address = make_network_address_from_int(network_id)
