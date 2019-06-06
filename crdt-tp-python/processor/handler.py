@@ -180,7 +180,7 @@ def _get_state_data(address, context):
     try:
         return state_entries[0].data
     except IndexError:
-        return {}
+        return None
 
 
 def _set_state_data(address, state_payload, context):
