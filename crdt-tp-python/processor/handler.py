@@ -14,6 +14,7 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
+import collections
 import logging
 
 import cbor
@@ -31,7 +32,7 @@ import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import asterales_protocol.messages.storage_pb2 as storage_pb2
 
 
-LOGGER = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class CrdtTransactionHandler(TransactionHandler):
@@ -62,7 +63,7 @@ class CrdtTransactionHandler(TransactionHandler):
         except Exception as e:
             # Catch any non-sawtooth exceptions at a high level, and declare
             # the transaction invalid. Clients may retry as needed.
-            LOGGER.exception(e)
+            LOG.exception(e)
             raise InvalidTransaction("An unhandled transaction processing "
                                      "exception occurred") from e
 
@@ -113,13 +114,17 @@ def _do_action(action, action_payload, context):
 
 def _add_ledger_crdt(action_payload, context):
     """Add a crdt record to the on-chain crdt implementation."""
-    # TODO(matt9j) XXX do it.
-    # Parse the receive ID and receive sqn for now
-    receive_id = 1
-    receive_sqn = 1
+
+    exchange = _parse_exchange_record(action_payload)
 
     # TODO(matt9j) handle gaps in the receive SQN?
-    address = make_crdt_address(receive_id)
+    # TODO(matt9j) Validate that the sequence number has indeed progressed
+    receive_sqn = exchange.receiver_sequence_number_msb * (2 ** 64) + \
+                  exchange.receiver_sequence_number_lsb
+    LOG.debug("Processing id: %d, sqn: %d to the ledger crdt",
+             exchange.receiver_id, receive_sqn)
+
+    address = make_crdt_address(exchange.receiver_id)
     current_crdt_blob = _get_state_data(address, context)
 
     if current_crdt_blob is not None:
@@ -128,11 +133,49 @@ def _add_ledger_crdt(action_payload, context):
         crdt_history = []
 
     if receive_sqn in crdt_history:
-        LOGGER.info("discarding duplicate upload %d", receive_sqn)
+        LOG.info("Discarding duplicate upload sqn: %d", receive_sqn)
         return
+
+    LOG.debug("Record is new, adding sqn: %d to the ledger crdt", receive_sqn)
 
     crdt_history.append(receive_sqn)
     _set_state_data(address, cbor.dumps(crdt_history), context)
+
+
+def _parse_exchange_record(record_blob):
+    exchange_message = handshake_pb2.Exchange()
+    exchange_message.ParseFromString(record_blob)
+
+    sender_exchange = handshake_pb2.Exchange.Partial()
+    sender_exchange.ParseFromString(exchange_message.partial_exchange)
+
+    core_exchange = handshake_pb2.Exchange.Core()
+    core_exchange.ParseFromString(sender_exchange.core_exchange)
+    UnpackedExchangeRecord = collections.namedtuple("UnpackedExchangeRecord", [
+        "receiver_signature",
+        "receiver_signed_blob",
+        "sender_signature",
+        "sender_signed_blob",
+        "sender_id",
+        "receiver_id",
+        "receiver_sequence_number_lsb",
+        "receiver_sequence_number_msb",
+        "amount",
+        "currency",
+    ])
+
+    return UnpackedExchangeRecord(
+        receiver_signature=exchange_message.receiver_signature,
+        receiver_signed_blob=exchange_message.partial_exchange,
+        sender_signature=sender_exchange.sender_signature,
+        sender_signed_blob=sender_exchange.core_exchange,
+        sender_id=core_exchange.sender_id,
+        receiver_id=core_exchange.receiver_id,
+        receiver_sequence_number_lsb=core_exchange.receiver_sequence_number_lsb,
+        receiver_sequence_number_msb=core_exchange.receiver_sequence_number_msb,
+        amount=core_exchange.amount,
+        currency=core_exchange.currency
+        )
 
 
 def _add_user(serialized_payload, context):
