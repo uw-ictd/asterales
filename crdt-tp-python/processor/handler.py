@@ -14,7 +14,6 @@
 # limitations under the License.
 # ------------------------------------------------------------------------------
 
-import collections
 import logging
 
 import cbor
@@ -30,6 +29,7 @@ from asterales_protocol.definitions import ActionTypes,\
 from asterales_protocol.definitions import FAMILY_METADATA
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import asterales_protocol.messages.storage_pb2 as storage_pb2
+import asterales_protocol.parse_helpers as asterales_parsers
 
 
 LOG = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ def _do_action(action, action_payload, context):
 def _add_ledger_crdt(action_payload, context):
     """Add a crdt record to the on-chain crdt implementation."""
 
-    exchange = _parse_exchange_record(action_payload)
+    exchange = asterales_parsers.parse_exchange_record(action_payload)
 
     # TODO(matt9j) handle gaps in the receive SQN?
     # TODO(matt9j) Validate that the sequence number has indeed progressed
@@ -140,42 +140,6 @@ def _add_ledger_crdt(action_payload, context):
 
     crdt_history.append(receive_sqn)
     _set_state_data(address, cbor.dumps(crdt_history), context)
-
-
-def _parse_exchange_record(record_blob):
-    exchange_message = handshake_pb2.Exchange()
-    exchange_message.ParseFromString(record_blob)
-
-    sender_exchange = handshake_pb2.Exchange.Partial()
-    sender_exchange.ParseFromString(exchange_message.partial_exchange)
-
-    core_exchange = handshake_pb2.Exchange.Core()
-    core_exchange.ParseFromString(sender_exchange.core_exchange)
-    UnpackedExchangeRecord = collections.namedtuple("UnpackedExchangeRecord", [
-        "receiver_signature",
-        "receiver_signed_blob",
-        "sender_signature",
-        "sender_signed_blob",
-        "sender_id",
-        "receiver_id",
-        "receiver_sequence_number_lsb",
-        "receiver_sequence_number_msb",
-        "amount",
-        "currency",
-    ])
-
-    return UnpackedExchangeRecord(
-        receiver_signature=exchange_message.receiver_signature,
-        receiver_signed_blob=exchange_message.partial_exchange,
-        sender_signature=sender_exchange.sender_signature,
-        sender_signed_blob=sender_exchange.core_exchange,
-        sender_id=core_exchange.sender_id,
-        receiver_id=core_exchange.receiver_id,
-        receiver_sequence_number_lsb=core_exchange.receiver_sequence_number_lsb,
-        receiver_sequence_number_msb=core_exchange.receiver_sequence_number_msb,
-        amount=core_exchange.amount,
-        currency=core_exchange.currency
-        )
 
 
 def _add_user(serialized_payload, context):
