@@ -28,7 +28,10 @@ services:
     container_name: crdt-tp-python
     depends_on:
       - validator
-    entrypoint: python3 crdt-tp-python/processor/main.py -C tcp://validator:4004
+    entrypoint: "python3 crdt-tp-python/processor/main.py \
+      -C tcp://validator:4004 \
+      -vv
+      "
 
   validator:
     image: hyperledger/sawtooth-validator:1.0
