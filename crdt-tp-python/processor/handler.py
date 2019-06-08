@@ -24,8 +24,7 @@ from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 from sawtooth_sdk.processor.handler import TransactionHandler
 
-from asterales_protocol.definitions import ActionTypes,\
-    make_user_address_from_int, make_network_address_from_int, make_crdt_address
+from asterales_protocol.definitions import ActionTypes, make_crdt_address, make_entity_address
 from asterales_protocol.definitions import FAMILY_METADATA
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import asterales_protocol.messages.storage_pb2 as storage_pb2
@@ -146,7 +145,7 @@ def _add_user(serialized_payload, context):
     home_id, blob_sig, user_id, user_blob = _parse_add_user(serialized_payload)
     # TODO(matt9j) Validate the network signature against the known home network key!
 
-    address = make_user_address_from_int(user_id)
+    address = make_entity_address(user_id)
     data = _get_state_data(address, context)
     if data:
         raise InvalidTransaction('The user {} already exists'.format(user_id))
@@ -169,10 +168,12 @@ def _add_net(action_payload, context):
     if not verified:
         raise InvalidTransaction('Message failed network key validation')
 
-    # TODO(matt9j) ensure we are not blowing away existing state by double-adding a community.
-    _set_state_data(make_network_address_from_int(community_id),
-                    new_community_blob,
-                    context)
+    address = make_entity_address(community_id)
+    data = _get_state_data(address, context)
+    if data:
+        raise InvalidTransaction('The community {} already exists'.format(community_id))
+
+    _set_state_data(address, new_community_blob, context)
 
 def _parse_add_community(action_payload):
     # Parse outer message
@@ -182,7 +183,7 @@ def _parse_add_community(action_payload):
     anchor_id = add_community_payload.anchor_id
     message_sig = add_community_payload.anchor_signature
 
-    new_community_info = storage_pb2.CommunityServer()
+    new_community_info = storage_pb2.Entity()
     new_community_info.ParseFromString(add_community_payload.new_community)
 
     community_id = new_community_info.id
@@ -196,9 +197,10 @@ def _parse_add_user(add_user_blob):
     add_user_payload.ParseFromString(add_user_blob)
     blob_sig = add_user_payload.home_signature
 
-    new_user_info = storage_pb2.User()
+    new_user_info = storage_pb2.Entity()
     new_user_info.ParseFromString(add_user_payload.new_user)
-    home_id = new_user_info.home_community_id
+
+    home_id = new_user_info.user.home_community_id
     user_id = new_user_info.id
 
     return home_id, blob_sig, user_id, add_user_payload.new_user

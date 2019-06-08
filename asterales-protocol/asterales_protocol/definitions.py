@@ -30,10 +30,8 @@ _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH = 60
 
 class ChainStructureTag(enum.Enum):
     """Tags following the transaction family prefix for different chain structures"""
-    USERS = '0000'
-    NETWORKS = '0001'
-    CRDT = '0002'
-    ENTITY_BALANCE = '0003'
+    ENTITY = '0000'
+    CRDT = '0001'
 
 
 class ActionTypes(enum.Enum):
@@ -56,43 +54,15 @@ def make_crdt_address(entity_id):
 
     return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.CRDT.value + padded_id
 
-
-def make_user_address(user_id):
+def make_entity_address(entity_id):
     # TODO(matt9j) Clean up user id handling and separate from IMSI
-    # Check if the user_id is a valid hex string
-    try:
-        int(user_id, 16)
-    except ValueError:
-        raise ValueError('The UserId \'{}\' is not a valid hex string'.format(user_id))
+    id_string = '{:X}'.format(entity_id)
 
-    if len(user_id) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
-        raise ValueError('The UserId must be at most {} hex characters \'{}\' is {} characters'.format(
-                _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, user_id, len(user_id)))
+    if len(id_string) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
+        raise ValueError('The entityBalanceId must be at most {} hex characters \'{}\' is {} characters'.format(
+            _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, id_string, len(id_string)))
+
     # Pad the user id out to the max length
-    padded_id = user_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
+    padded_id = id_string.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
 
-    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.USERS.value + padded_id
-
-
-def make_user_address_from_int(id_int):
-    user_id = '{:X}'.format(id_int)
-    return make_user_address(user_id)
-
-
-def make_network_address_from_hex(net_id):
-    try:
-        int(net_id, 16)
-    except ValueError:
-        raise ValueError('The NetworkId \'{}\' is not a valid hex string'.format(net_id))
-
-    if len(net_id) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
-        raise ValueError('The UserId must be at most {} hex characters \'{}\' is {} characters'.format(
-                _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, net_id, len(net_id)))
-    # Pad the user id out to the max length
-    padded_id = net_id.rjust(_CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH, '0')
-
-    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.NETWORKS.value + padded_id
-
-def make_network_address_from_int(id_int):
-    net_id = '{:X}'.format(id_int)
-    return make_network_address_from_hex(net_id)
+    return FAMILY_METADATA['prefixes'][0] + ChainStructureTag.ENTITY.value + padded_id

@@ -15,7 +15,7 @@ message AddCommunity {
     // field from the anchor network.
     bytes anchor_signature = 2;
 
-    // The new_community is a serialized `storage.CommunityServer` message. It is
+    // The new_community is a serialized `storage.Entity` message. It is
     // encoded as bytes to support protobuf implementations that do not allow
     // straightforward access to the raw bytes for crypto verification after
     // parsing.
@@ -31,7 +31,7 @@ message AddUser {
     // new_user message to validate this signature.
     bytes home_signature = 1;
 
-    // The new_user is a serialized `storage.User` message. It is encoded as
+    // The new_user is a serialized `storage.Entity` message. It is encoded as
     // bytes to support protobuf implementations that do not allow
     // straightforward access to the raw bytes for crypto verification after
     // parsing.

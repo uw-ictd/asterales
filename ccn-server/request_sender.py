@@ -10,10 +10,10 @@ import asterales_protocol.messages.storage_pb2 as storage
 
 def add_community(signing_key, verify_key):
     """Add a test community to the network"""
-    new_community_info = storage.CommunityServer()
+    new_community_info = storage.Entity()
     new_community_info.id = 1
     new_community_info.verify_key = verify_key.encode(encoder=nacl.encoding.RawEncoder)
-    new_community_info.display_name = "New Community One".encode('utf8')
+    new_community_info.server.display_name = "New Community One".encode('utf8')
 
     binary_new_community_info = new_community_info.SerializeToString()
 
@@ -37,11 +37,11 @@ def add_community(signing_key, verify_key):
 def add_user(community_signing_key, user_signing_key, user_verify_key, user_id):
     """Add a test user to the network."""
 
-    new_user_info = storage.User()
+    new_user_info = storage.Entity()
     new_user_info.id = user_id
     new_user_info.verify_key = user_verify_key.encode(encoder=nacl.encoding.RawEncoder)
-    new_user_info.display_name = "New User One".encode('utf8')
-    new_user_info.home_community_id = 1
+    new_user_info.user.display_name = "New User One".encode('utf8')
+    new_user_info.user.home_community_id = 1
 
     new_user_blob = new_user_info.SerializeToString()
     signature = community_signing_key.sign(new_user_blob).signature
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Generate the key for the user.
     user_signing_key = nacl.signing.SigningKey.generate()
     user_verify_key = user_signing_key.verify_key
-    user_id = 1
+    user_id = 2
 
     add_user(community_signing_key, user_signing_key, user_verify_key, user_id)
 

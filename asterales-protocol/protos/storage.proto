@@ -1,41 +1,41 @@
 syntax = "proto3";
 package asterales.storage;
 
-// CommunityServer stores the public information required to represent a
-// community in the network.
-message CommunityServer {
-    // The numerical id of the community. This id must be unique across all
+// An Entity stores information about an entity active in the network.
+//
+// Entities may come in several types with specific subfields per type.
+message Entity {
+    // The numerical id of the entity. This id must be unique across all
     // communities and users.
     // TODO(matt9j) The address may map directly to the ID so this field may not
     // be needed.
     int64 id = 1;
 
-    // The ed25519 public verification key corresponding to the community's held
+    // The ed25519 public verification key corresponding to the entity's held
     // private key. This key validates transactions involving this community.
     bytes verify_key = 2;
 
+    oneof entity_subtype {
+        CommunityServer server = 6;
+        User user = 7;
+    }
+}
+
+// CommunityServer stores the public information required to represent a
+// community in the network.
+message CommunityServer {
     // A utf8 encoded display name of the community.
-    string display_name = 17;
+    string display_name = 16;
 }
 
 // User stores the public information required to represent a mobile user of the
 // network.
 message User {
-    // The numerical id of the user. This id must be unique across all
-    // communities and users.
-    // TODO(matt9j) The address may map directly to the ID so this field may not
-    // be needed.
-    int64 id = 1;
-
-    // The ed25519 public verification key corresponding to this user's private
-    // signing key. This key can validate transactions involving this user.
-    bytes verify_key = 2;
-
     // The numerical id of this user's home community.
-    int64 home_community_id = 3;
+    int64 home_community_id = 1;
 
     // A utf8 encoded display name of the user.
-    string display_name = 17;
+    string display_name = 16;
 }
 
 // Exchange represents a single CRDT entry with metadata to support eventual

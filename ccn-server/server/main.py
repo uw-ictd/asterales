@@ -12,7 +12,8 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import Batch
 
-from asterales_protocol.definitions import ActionTypes, make_network_address_from_int, make_user_address_from_int, make_crdt_address
+import asterales_protocol.parse_helpers as asterales_parsers
+from asterales_protocol.definitions import ActionTypes, make_crdt_address, make_entity_address
 import asterales_protocol.messages.storage_pb2 as storage_pb2
 import asterales_protocol.messages.handshake_pb2 as handshake_pb2
 import hashlib
@@ -131,7 +132,7 @@ def _parse_id_from_add_community(action_payload):
     add_community_payload = handshake_pb2.AddCommunity()
     add_community_payload.ParseFromString(action_payload)
 
-    new_community_info = storage_pb2.CommunityServer()
+    new_community_info = storage_pb2.Entity()
     new_community_info.ParseFromString(add_community_payload.new_community)
 
     community_id = new_community_info.id
@@ -143,7 +144,7 @@ def _parse_user_id_from_add_user(add_user_blob):
     add_user_payload = handshake_pb2.AddUser()
     add_user_payload.ParseFromString(add_user_blob)
 
-    new_user_info = storage_pb2.User()
+    new_user_info = storage_pb2.Entity()
     new_user_info.ParseFromString(add_user_payload.new_user)
 
     return new_user_info.id
@@ -173,12 +174,12 @@ class SawtoothClient(object):
                                       crdt_record, [address], wait=wait)
 
     def add_community(self, network_id, payload, wait=None):
-        address = make_network_address_from_int(network_id)
+        address = make_entity_address(network_id)
         return self._send_transaction(ActionTypes.ADD_NET.value, payload,
                                       [address], wait=wait)
 
     def add_user(self, user_id, payload, wait=None):
-        address = make_user_address_from_int(user_id)
+        address = make_entity_address(user_id)
         return self._send_transaction(ActionTypes.ADD_USER.value, payload,
                                       [address], wait=wait)
 
