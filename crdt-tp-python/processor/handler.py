@@ -19,6 +19,7 @@ import logging
 import cbor
 import nacl.signing
 import nacl.encoding
+import nacl.exceptions
 
 from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
@@ -122,6 +123,36 @@ def _add_ledger_crdt(action_payload, context):
                   exchange.receiver_sequence_number_lsb
     LOG.debug("Processing id: %d, sqn: %d to the ledger crdt",
              exchange.receiver_id, receive_sqn)
+
+    # Validate the exchange signatures
+    receiver_blob = _get_state_data(make_entity_address(exchange.receiver_id),
+                                    context)
+    receiver_data = storage_pb2.Entity()
+    receiver_data.ParseFromString(receiver_blob)
+    receive_verify_key = nacl.signing.VerifyKey(receiver_data.verify_key,
+                                                encoder=nacl.encoding.RawEncoder)
+    try:
+        receive_verify_key.verify(exchange.receiver_signed_blob,
+                                  exchange.receiver_signature,
+                                  encoder=nacl.encoding.RawEncoder)
+    except nacl.exceptions.BadSignatureError as e:
+        LOG.error(e)
+        raise InvalidTransaction('Exchange receive signature invalid sqn:{}'.format(
+            receive_sqn))
+
+    sender_blob = _get_state_data(make_entity_address(exchange.sender_id),
+                                  context)
+    sender_data = storage_pb2.Entity()
+    sender_data.ParseFromString(sender_blob)
+    sender_verify_key = nacl.signing.VerifyKey(sender_data.verify_key,
+                                               encoder=nacl.encoding.RawEncoder)
+    try:
+        sender_verify_key.verify(exchange.sender_signed_blob,
+                                 exchange.sender_signature,
+                                 encoder=nacl.encoding.RawEncoder)
+    except nacl.exceptions.BadSignatureError:
+        raise InvalidTransaction('Exchange send signature invalid sqn:{}'.format(
+            receive_sqn))
 
     address = make_crdt_address(exchange.receiver_id)
     current_crdt_blob = _get_state_data(address, context)

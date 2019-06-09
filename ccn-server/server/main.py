@@ -26,6 +26,26 @@ from flask import request
 
 app = Flask(__name__)
 
+
+@app.route('/debug/set_identity', methods=['POST'])
+def debug_set_identity():
+    app.logger.warning("Overriding key information with external keys")
+    global SIGNING_KEY
+    global VERIFY_KEY
+    global ENTITY_ID
+
+    identity_data = cbor.loads(request.data)
+    SIGNING_KEY = nacl.signing.SigningKey(identity_data['signing_key'],
+                                          encoder=nacl.encoding.RawEncoder)
+    VERIFY_KEY = SIGNING_KEY.verify_key
+    ENTITY_ID = identity_data['id']
+
+    key_data = SIGNING_KEY.encode(encoder=nacl.encoding.RawEncoder)
+    with open("crdt_network_key.priv", "w+b") as f:
+        f.write(key_data)
+
+    return ''
+
 @app.route('/')
 def hello_world():
     assert request.path == "/"
@@ -84,9 +104,8 @@ def initiate_send():
     # TODO(matt9j) support multiple currencies.
 
     exchange_core_proto = handshake_pb2.Exchange.Core()
-    # TODO(matt9j) Use this network's sender ID.
     # TODO(matt9j) UI Validation that we actually want to send!
-    exchange_core_proto.sender_id = 1
+    exchange_core_proto.sender_id = ENTITY_ID
     exchange_core_proto.receiver_id = receiver_id
     exchange_core_proto.receiver_sequence_number_lsb = receiver_data['sequence_lsb']
     exchange_core_proto.receiver_sequence_number_msb = receiver_data['sequence_msb']
@@ -96,7 +115,9 @@ def initiate_send():
 
     partial_exchange = handshake_pb2.Exchange.Partial()
     # TODO(matt9j) Inject the signing key dependency for testing.
-    partial_exchange.sender_signature = signing_key.sign(exchange_core_blob, encoder=nacl.encoding.RawEncoder)
+    partial_exchange.sender_signature = \
+        SIGNING_KEY.sign(exchange_core_blob,
+                         encoder=nacl.encoding.RawEncoder).signature
     partial_exchange.core_exchange = exchange_core_blob
 
     partial_exchange_blob = partial_exchange.SerializeToString()
@@ -106,8 +127,10 @@ def initiate_send():
 
 @app.route('/exchange/ledgerCrdtUpload', methods=['POST'])
 def ledger_crdt_upload():
-    # TODO(matt9j) XXX remove the constant factor
-    result = client.add_crdt_record(1, request.data)
+    exchange = asterales_parsers.parse_exchange_record(request.data)
+    result = client.add_crdt_record(exchange.receiver_id,
+                                    exchange.sender_id,
+                                    request.data)
     return result
 
 
@@ -168,10 +191,19 @@ class SawtoothClient(object):
             self._signer = CryptoFactory(
                 create_context('secp256k1')).new_signer(sawtooth_signing_key)
 
-    def add_crdt_record(self, receive_entity, crdt_record, wait=None):
-        address = make_crdt_address(receive_entity)
+    def add_crdt_record(self, receive_entity, send_entity,
+                        crdt_record, wait=None):
+        crdt_address = make_crdt_address(receive_entity)
+        receiver_address = make_entity_address(receive_entity)
+        sender_address = make_entity_address(send_entity)
+
         return self._send_transaction(ActionTypes.ADD_LEDGER_CRDT.value,
-                                      crdt_record, [address], wait=wait)
+                                      crdt_record,
+                                      [crdt_address,
+                                       receiver_address,
+                                       sender_address,
+                                       ],
+                                      wait=wait)
 
     def add_community(self, network_id, payload, wait=None):
         address = make_entity_address(network_id)
@@ -288,7 +320,8 @@ class SawtoothClient(object):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
-    signing_key, verify_key = initialize_crdt_key()
+    SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
+    ENTITY_ID = 1
 
     client = SawtoothClient(url="http://rest-api:8008", keyfile="/root/.sawtooth/keys/root.priv")
     # TODO(matt9j) Remove debug flag before deployment

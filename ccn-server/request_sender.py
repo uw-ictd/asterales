@@ -8,10 +8,24 @@ import asterales_protocol.messages.handshake_pb2 as handshake
 import asterales_protocol.messages.storage_pb2 as storage
 
 
-def add_community(signing_key, verify_key):
+def set_server_data(entity_id, signing_key):
+    """Set parameters in the running community server"""
+    data = {'signing_key': signing_key.encode(encoder=nacl.encoding.RawEncoder),
+            'id': entity_id,
+            }
+    res = requests.post(url="http://localhost:5000/debug/set_identity",
+                        data=cbor.dumps(data),
+                        headers={'Content-Type': 'application/octet-stream'})
+
+    print(res)
+    for line in res.iter_lines():
+        print(line)
+
+
+def add_community(entity_id, verify_key):
     """Add a test community to the network"""
     new_community_info = storage.Entity()
-    new_community_info.id = 1
+    new_community_info.id = entity_id
     new_community_info.verify_key = verify_key.encode(encoder=nacl.encoding.RawEncoder)
     new_community_info.server.display_name = "New Community One".encode('utf8')
 
@@ -107,7 +121,7 @@ def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
     full_exchange.partial_exchange = partial_exchange_blob
     full_exchange.receiver_signature = user_signing_key.sign(
         partial_exchange_blob,
-        encoder=nacl.encoding.RawEncoder)
+        encoder=nacl.encoding.RawEncoder).signature
 
     full_exchange_blob = full_exchange.SerializeToString()
 
@@ -125,7 +139,8 @@ if __name__ == "__main__":
     # Generate the key for the new community.
     community_signing_key = nacl.signing.SigningKey.generate()
     community_verify_key = community_signing_key.verify_key
-    add_community(community_signing_key, community_verify_key)
+    set_server_data(1, community_signing_key)
+    add_community(1, community_verify_key)
 
     # Generate the key for the user.
     user_signing_key = nacl.signing.SigningKey.generate()
