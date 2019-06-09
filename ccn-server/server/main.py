@@ -24,6 +24,8 @@ import cbor
 from flask import Flask
 from flask import request
 
+import server.delta_crdt as crdt
+
 app = Flask(__name__)
 
 
@@ -127,6 +129,11 @@ def ledger_crdt_upload():
                                     exchange.sender_id,
                                     request.data)
     return result
+
+
+@app.route('/crdt/neighborPackage', methods=['POST'])
+def receive_neighbor_package():
+    CRDT_INSTANCE.process_neighbor_package(request.data)
 
 
 def initialize_crdt_key():
@@ -317,6 +324,8 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
     ENTITY_ID = 1
+
+    CRDT_INSTANCE = crdt.DeltaPropCrdt("temphost", ["one", "two", "three"])
 
     client = SawtoothClient(url="http://rest-api-0:8008", keyfile="/root/.sawtooth/keys/root.priv")
     # TODO(matt9j) Remove debug flag before deployment
