@@ -82,7 +82,10 @@ services:
     working_dir: /ccn-server
     entrypoint: "bash -c \"\
       sawtooth keygen ; \
-      pipenv run python server/main.py ; \
+      pipenv run python server/main.py \
+        --sawtoothApi http://rest-api-0:8008 \
+        --neighbors 'ccn-server' \
+        --host 'ccn-server'; \
       \""
 
   shell:

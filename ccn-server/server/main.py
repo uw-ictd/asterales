@@ -1,3 +1,5 @@
+import argparse
+
 import logging
 import nacl.encoding
 import nacl.signing
@@ -321,12 +323,23 @@ class SawtoothClient(object):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", required=True,
+                        help="The host of the current server.")
+    parser.add_argument("--neighbors", required=True,
+                        help="The hostnames of this server's neighbors for CRDT propagation.")
+    parser.add_argument("--sawtoothApi", required=True,
+                        help="The sawtooth rest-api endpoint.")
+
+    args = parser.parse_args()
+
     logging.getLogger().setLevel(logging.DEBUG)
     SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
     ENTITY_ID = 1
 
-    CRDT_INSTANCE = crdt.DeltaPropCrdt("temphost", ["one", "two", "three"])
+    CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","))
 
-    client = SawtoothClient(url="http://rest-api-0:8008", keyfile="/root/.sawtooth/keys/root.priv")
+    client = SawtoothClient(url=args.sawtoothApi,
+                            keyfile="/root/.sawtooth/keys/root.priv")
     # TODO(matt9j) Remove debug flag before deployment
     app.run(debug=True, host='0.0.0.0', port=5000)
