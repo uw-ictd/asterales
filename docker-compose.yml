@@ -61,14 +61,14 @@ services:
       - validator
     entrypoint: devmode-engine-rust -C tcp://validator:5050
 
-  rest-api:
+  rest-api-0:
     image: hyperledger/sawtooth-rest-api:1.1
     container_name: sawtooth-rest-api
     ports:
       - "8008:8008"
     depends_on:
       - validator
-    entrypoint: sawtooth-rest-api -C tcp://validator:4004 --bind rest-api:8008
+    entrypoint: sawtooth-rest-api -C tcp://validator:4004 --bind rest-api-0:8008
 
   ccn-server:
     build:
@@ -76,7 +76,7 @@ services:
       dockerfile: ccn-server/Dockerfile
     container_name: ccn-server
     depends_on:
-      - rest-api
+      - rest-api-0
     ports:
       - "5000:5000"
     working_dir: /ccn-server
@@ -89,7 +89,7 @@ services:
     image: hyperledger/sawtooth-all:1.1
     container_name: sawtooth-shell
     depends_on:
-      - rest-api
+      - rest-api-0
     entrypoint: "bash -c \"\
       sawtooth keygen ; \
       tail -f /dev/null \

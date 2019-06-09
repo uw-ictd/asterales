@@ -31,3 +31,8 @@ Track the towers' current balances
 
 
 Figure out exactly what gets sent between two validators when a transaction is communicated
+
+
+# Running the PBFT Network
+
+`docker-compose -f docker-compose-pbft.yml down -v && docker-compose -f docker-compose-pbft.yml build && docker-compose -f docker-compose-pbft.yml up`

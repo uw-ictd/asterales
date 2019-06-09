@@ -318,6 +318,6 @@ if __name__ == "__main__":
     SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
     ENTITY_ID = 1
 
-    client = SawtoothClient(url="http://rest-api:8008", keyfile="/root/.sawtooth/keys/root.priv")
+    client = SawtoothClient(url="http://rest-api-0:8008", keyfile="/root/.sawtooth/keys/root.priv")
     # TODO(matt9j) Remove debug flag before deployment
     app.run(debug=True, host='0.0.0.0', port=5000)
