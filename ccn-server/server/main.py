@@ -46,11 +46,6 @@ def debug_set_identity():
 
     return ''
 
-@app.route('/')
-def hello_world():
-    assert request.path == "/"
-    return 'Hello, World!'
-
 
 @app.route('/register/user', methods=['POST'])
 def register_user():
