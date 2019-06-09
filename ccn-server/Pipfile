@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sawtooth-sdk = ">1.0,<1.1"
+sawtooth-sdk = "<1.2"
 flask = "*"
 requests = "*"
 pynacl = "*"

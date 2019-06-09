@@ -7,14 +7,14 @@ version: "3"
 services:
 
   settings-tp:
-    image: hyperledger/sawtooth-settings-tp:1.0
+    image: hyperledger/sawtooth-settings-tp:1.1
     container_name: sawtooth-settings-tp
     depends_on:
       - validator
     entrypoint: settings-tp -vv -C tcp://validator:4004
 
   identity-tp:
-    image: hyperledger/sawtooth-identity-tp:1.0
+    image: hyperledger/sawtooth-identity-tp:1.1
     container_name: sawtooth-identity-tp
     depends_on:
       - validator
@@ -34,7 +34,7 @@ services:
       "
 
   validator:
-    image: hyperledger/sawtooth-validator:1.0
+    image: hyperledger/sawtooth-validator:1.1
     container_name: sawtooth-validator
     expose:
       - 4004
@@ -47,14 +47,22 @@ services:
         sawset genesis -k /root/.sawtooth/keys/my_key.priv && \
         sawadm genesis config-genesis.batch ; \
       fi ; \
-      sawtooth-validator -vv \
+      sawtooth-validator -v \
         --endpoint tcp://validator:8800 \
         --bind component:tcp://eth0:4004 \
         --bind network:tcp://eth0:8800 \
+        --bind consensus:tcp://eth0:5050 \
       \""
 
+  devmode-engine:
+    image: hyperledger/sawtooth-devmode-engine-rust:1.1
+    container_name: sawtooth-devmode-engine-rust-default
+    depends_on:
+      - validator
+    entrypoint: devmode-engine-rust -C tcp://validator:5050
+
   rest-api:
-    image: hyperledger/sawtooth-rest-api:1.0
+    image: hyperledger/sawtooth-rest-api:1.1
     container_name: sawtooth-rest-api
     ports:
       - "8008:8008"
@@ -78,7 +86,7 @@ services:
       \""
 
   shell:
-    image: hyperledger/sawtooth-all:1.0
+    image: hyperledger/sawtooth-all:1.1
     container_name: sawtooth-shell
     depends_on:
       - rest-api

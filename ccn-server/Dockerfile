@@ -3,7 +3,7 @@
 
 # -------------=== ccn-server deployment image ===-------------
 
-FROM hyperledger/sawtooth-shell:1.0
+FROM hyperledger/sawtooth-shell:1.1
 
 # Set the locale for modern unicode python: ubuntu image defaults to ASCII
 ENV LANG C.UTF-8
