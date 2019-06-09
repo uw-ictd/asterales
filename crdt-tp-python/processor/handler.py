@@ -154,8 +154,8 @@ def _add_ledger_crdt(action_payload, context):
         raise InvalidTransaction('Exchange send signature invalid sqn:{}'.format(
             receive_sqn))
 
-    address = make_crdt_address(exchange.receiver_id)
-    current_crdt_blob = _get_state_data(address, context)
+    crdt_address = make_crdt_address(exchange.receiver_id)
+    current_crdt_blob = _get_state_data(crdt_address, context)
 
     if current_crdt_blob is not None:
         crdt_history = cbor.loads(current_crdt_blob)
@@ -169,7 +169,17 @@ def _add_ledger_crdt(action_payload, context):
     LOG.debug("Record is new, adding sqn: %d to the ledger crdt", receive_sqn)
 
     crdt_history.append(receive_sqn)
-    _set_state_data(address, cbor.dumps(crdt_history), context)
+    _set_state_data(crdt_address, cbor.dumps(crdt_history), context)
+
+    receiver_data.balance += exchange.amount
+    _set_state_data(make_entity_address(exchange.receiver_id),
+                    receiver_data.SerializeToString(),
+                    context)
+
+    sender_data.balance -= exchange.amount
+    _set_state_data(make_entity_address(exchange.sender_id),
+                    sender_data.SerializeToString(),
+                    context)
 
 
 def _add_user(serialized_payload, context):

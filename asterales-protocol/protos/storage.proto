@@ -15,6 +15,9 @@ message Entity {
     // private key. This key validates transactions involving this community.
     bytes verify_key = 2;
 
+    // The entity's current balance.
+    int64 balance = 3;
+
     oneof entity_subtype {
         CommunityServer server = 6;
         User user = 7;
