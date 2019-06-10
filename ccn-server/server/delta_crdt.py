@@ -24,7 +24,7 @@ class DeltaPropCrdt(object):
                  delta_timeout_seconds):
         self.delta_set = set()
         self.local_state = {}
-        self.neighbors = neighbors
+        self.neighbors = set(neighbors)
         self.host = host
         self.max_delta_count = max_pending_delta_count
         self.delta_timeout_seconds = delta_timeout_seconds
@@ -87,7 +87,7 @@ class DeltaPropCrdt(object):
             #  least amortized!
             neighbor_packages = {}
             for neighbor in self.neighbors:
-                neighbor_packages[neighbor] = {}
+                neighbor_packages[neighbor] = set()
 
             # Sort the deltas into queues for neighbors that should get them
             while self.delta_set:
