@@ -44,6 +44,7 @@ class ActionTypes(enum.Enum):
 
 def make_crdt_address(entity_id):
     id_string = '{:X}'.format(entity_id)
+    id_string = id_string.lower()
 
     if len(id_string) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
         raise ValueError('The CRDTId must be at most {} hex characters \'{}\' is {} characters'.format(
@@ -57,6 +58,7 @@ def make_crdt_address(entity_id):
 def make_entity_address(entity_id):
     # TODO(matt9j) Clean up user id handling and separate from IMSI
     id_string = '{:X}'.format(entity_id)
+    id_string = id_string.lower()
 
     if len(id_string) > _CHAIN_STRUCTURE_ADDRESS_MAX_LENGTH:
         raise ValueError('The entityBalanceId must be at most {} hex characters \'{}\' is {} characters'.format(
