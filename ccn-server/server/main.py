@@ -397,5 +397,7 @@ if __name__ == "__main__":
 
     client = SawtoothClient(url=args.sawtoothApi,
                             keyfile="/root/.sawtooth/keys/root.priv")
+    logging.getLogger().setLevel(logging.WARNING)
+    app.logger.setLevel(logging.WARNING)
     # TODO(matt9j) Remove debug flag before deployment
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)

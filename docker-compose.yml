@@ -31,7 +31,7 @@ services:
     entrypoint: "python3 crdt-tp-python/processor/main.py \
       --crdt http://ccn-server:5000
       -C tcp://validator:4004 \
-      -vv
+      -v
       "
 
   validator:

@@ -35,6 +35,7 @@ import asterales_protocol.parse_helpers as asterales_parsers
 
 
 LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
 
 CRDT_SESSION = requests.session()
 
@@ -124,6 +125,7 @@ def _do_action(action, action_payload, context, crdt_endpoint):
 
 def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
     """Flattens contiguous local CRDT records into the entity state"""
+    LOG.info("Flattening delta crdt")
 
     # Parse the request.
     flatten_request = cbor2.loads(action_payload)
@@ -281,7 +283,8 @@ def _add_ledger_crdt(action_payload, context):
         LOG.info("Discarding duplicate upload sqn: %d", receive_sqn)
         return
 
-    LOG.debug("Record is new, adding sqn: %d to the ledger crdt", receive_sqn)
+    LOG.info("Record is new, adding id: %d, sqn: %d to the ledger crdt",
+             exchange.receiver_id, receive_sqn)
 
     crdt_history.append(receive_sqn)
     _set_state_data(crdt_address, cbor.dumps(crdt_history), context)
