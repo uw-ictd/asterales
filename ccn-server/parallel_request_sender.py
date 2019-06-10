@@ -3,6 +3,8 @@ import multiprocessing
 import nacl.signing
 import timeit
 
+from functools import partial
+
 import request_sender as sender
 
 
@@ -12,6 +14,9 @@ def _parse_args():
     parser.add_argument("--users", help="The number of users", type=int)
     parser.add_argument("--messages_per_user",
                         help="The number of transactions per user",
+                        type=int)
+    parser.add_argument("-j", "--parallelism",
+                        help="The number of parallel requesting processes",
                         type=int)
 
     args = parser.parse_args()
@@ -34,6 +39,18 @@ class FakeUser(object):
         self.sqn = 0
 
 
+def _send_messages(messages_per_user, community_verify_key, mapped_user):
+    for message_i in range(messages_per_user):
+        sender.transfer_community_to_user(
+            user_id=mapped_user.id,
+            previous_sqn=mapped_user.sqn,
+            user_crdt_sqn=(mapped_user.sqn + 1),
+            amount=42,
+            user_signing_key=mapped_user.signing_key,
+            community_verify_key=community_verify_key,
+            upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload")
+        mapped_user.sqn += 1
+
 class ParallelRequester(object):
     def __init__(self, server_url, user_count, message_count, max_parallel):
         self.server_url = server_url
@@ -41,6 +58,7 @@ class ParallelRequester(object):
         self.messages_per_user = message_count
         self.community = FakeCommunity(1)
         self.users = [FakeUser(x) for x in range(2, user_count + 2)]
+        self.pool = multiprocessing.Pool(processes=max_parallel)
 
     def register_entities(self):
         # Register the community and sync the keys with the server.
@@ -53,18 +71,9 @@ class ParallelRequester(object):
                             user.signing_key, user.verify_key, user.id)
 
     def generate_requests(self):
-        # Do sequentially for now
-        for message_i in range(self.messages_per_user):
-            for user in self.users:
-                sender.transfer_community_to_user(
-                    user_id=user.id,
-                    previous_sqn=user.sqn,
-                    user_crdt_sqn=(user.sqn + 1),
-                    amount=42,
-                    user_signing_key=user.signing_key,
-                    community_verify_key=self.community.verify_key,
-                    upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload")
-                user.sqn += 1
+        bound_sender = partial(_send_messages, self.messages_per_user, self.community.verify_key)
+        # Map into the worker pool for parallel execution.
+        self.pool.map(bound_sender, self.users)
 
 
 if __name__ == "__main__":
@@ -72,7 +81,7 @@ if __name__ == "__main__":
     requester = ParallelRequester("http://localhost:5000",
                                   options.users,
                                   options.messages_per_user,
-                                  1)
+                                  options.parallelism)
 
     requester.register_entities()
     print("debug info")
