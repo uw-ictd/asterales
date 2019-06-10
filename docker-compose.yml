@@ -84,7 +84,7 @@ services:
       sawtooth keygen ; \
       pipenv run python server/main.py \
         --sawtoothApi http://rest-api-0:8008 \
-        --neighbors 'ccn-server,ccn-darrow' \
+        --neighbors 'ccn-darrow' \
         --host 'ccn-server'; \
       \""
 
@@ -102,7 +102,7 @@ services:
       sawtooth keygen ; \
       pipenv run python server/main.py \
         --sawtoothApi http://rest-api-0:8008 \
-        --neighbors 'ccn-server,ccn-darrow' \
+        --neighbors 'ccn-server' \
         --host 'ccn-darrow'; \
       \""
 
