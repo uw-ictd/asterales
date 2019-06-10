@@ -76,7 +76,7 @@ def add_user(community_signing_key, user_signing_key, user_verify_key, user_id):
 
 # Generate an exchange between the user and community.
 def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
-                               community_verify_key):
+                               community_verify_key, upload_uri):
     """Transfer funds from the community to the user.
 
     Since the user is receiving, the user is responsible for ensuring the
@@ -126,7 +126,7 @@ def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
     full_exchange_blob = full_exchange.SerializeToString()
 
     upload_response = requests.post(
-        url="http://localhost:5000/exchange/ledgerCrdtUpload",
+        url=upload_uri,
         data=full_exchange_blob,
         headers={'Content-Type': 'application/octet-stream'})
 
@@ -149,8 +149,18 @@ if __name__ == "__main__":
 
     add_user(community_signing_key, user_signing_key, user_verify_key, user_id)
 
+    '''
     transfer_community_to_user(user_id=user_id,
                                user_crdt_sqn=1337,
                                amount=42,
                                user_signing_key=user_signing_key,
-                               community_verify_key=community_verify_key)
+                               community_verify_key=community_verify_key,
+                               upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload")
+                               '''
+
+    transfer_community_to_user(user_id=user_id,
+                               user_crdt_sqn=1337,
+                               amount=42,
+                               user_signing_key=user_signing_key,
+                               community_verify_key=community_verify_key,
+                               upload_uri="http://localhost:5000/exchange/deltaCrdtUpload")
