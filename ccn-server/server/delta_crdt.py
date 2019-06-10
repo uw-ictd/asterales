@@ -95,9 +95,9 @@ class DeltaPropCrdt(object):
             while self.delta_set:
                 delta = self.delta_set.pop()
                 neighbors_to_send = self.neighbors - delta.sources
-                self.logger.debug("delta in the set sending to neighbors: %s",
-                                  neighbors_to_send)
                 for neighbor in neighbors_to_send:
+                    self.logger.debug("sending delta to neighbor: %s",
+                                      neighbor)
                     # TODO(matt9j) Think about if this actually needs to send
                     #  the list of all the sources along to the next node.
                     neighbor_packages[neighbor].add(delta.record_blob)
