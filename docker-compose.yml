@@ -84,8 +84,26 @@ services:
       sawtooth keygen ; \
       pipenv run python server/main.py \
         --sawtoothApi http://rest-api-0:8008 \
-        --neighbors 'ccn-server' \
+        --neighbors 'ccn-server,ccn-darrow' \
         --host 'ccn-server'; \
+      \""
+
+  ccn-darrow:
+    build:
+      context: ./
+      dockerfile: ccn-server/Dockerfile
+    container_name: ccn-darrow
+    depends_on:
+      - rest-api-0
+    expose:
+      - 5000
+    working_dir: /ccn-server
+    entrypoint: "bash -c \"\
+      sawtooth keygen ; \
+      pipenv run python server/main.py \
+        --sawtoothApi http://rest-api-0:8008 \
+        --neighbors 'ccn-server,ccn-darrow' \
+        --host 'ccn-darrow'; \
       \""
 
   shell:
