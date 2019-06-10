@@ -43,6 +43,9 @@ class DeltaPropCrdt(object):
         last_valid_receive_sqn = exchange.last_valid_sequence_number_msb * (2**64) + \
                                  exchange.last_valid_sequence_number_lsb
 
+        self.logger.debug("inserting exchange (%d, %d] for %d",
+                          last_valid_receive_sqn, sequence_number, receiver_id)
+
         inflates_state = False
         if exchange.receiver_id not in self.local_state:
             inflates_state = True
@@ -116,9 +119,49 @@ class DeltaPropCrdt(object):
             self.propagate_lock.release()
 
     def get_impacted_senders(self, receiver_id):
+        self.logger.debug("Getting impacted senders for %d", receiver_id)
         senders = set()
-        for element in self.local_state[receiver_id]:
+        for sqn, element in self.local_state[receiver_id].items():
             senders.add(element.sender)
+        return senders
+
+    def get_endorsing_records(self, receiver_id, current_frontier,
+                              proposed_frontier):
+        self.logger.debug("getting endorsing records (%d, %d] for %d",
+                          current_frontier, proposed_frontier, receiver_id)
+
+        # Prune local state as needed.
+        keys_to_drop = []
+        for sqn in self.local_state[receiver_id].keys():
+            if sqn <= current_frontier:
+                keys_to_drop.append(sqn)
+        for key in keys_to_drop:
+            self.logger.debug("dropping gc'd record receiver: %d, sqn: %d",
+                              receiver_id,
+                              key)
+            del self.local_state[receiver_id][key]
+
+        available_sqns = list(self.local_state[receiver_id].keys())
+        available_sqns.sort()
+        self.logger.debug("Available sqns for id %d : %s",
+                          receiver_id,
+                          available_sqns)
+
+        endorsing_records = []
+        frontier = current_frontier
+        for sqn in available_sqns:
+            element = self.local_state[receiver_id][sqn]
+            self.logger.debug("examining element at sqn: %d", sqn)
+            if element.previous_sqn != frontier:
+                self.logger.info("Unable to satisfy endorsement request previous: %d frontier: %d",
+                                 element.previous_sqn, frontier)
+                return None
+            frontier = sqn
+            endorsing_records.append(element.record_blob)
+            if frontier >= proposed_frontier:
+                break
+
+        return endorsing_records
 
     def garbage_collect(self):
         # identify runs

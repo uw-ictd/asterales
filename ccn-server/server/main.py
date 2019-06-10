@@ -134,7 +134,7 @@ def ledger_crdt_upload():
     return result
 
 
-@app.route('/crdt/flattenDeltaCrdt')
+@app.route('/crdt/flattenDeltaCrdt', methods=['POST'])
 def flatten_crdt():
     flatten_request = cbor2.loads(request.data)
     receive_id = flatten_request['entity_id']
@@ -154,6 +154,19 @@ def delta_crdt_upload():
 def receive_neighbor_package():
     CRDT_INSTANCE.process_neighbor_package(request.data)
     return ''
+
+# TODO(matt9j) In the future ensure this is only visible to the local validator.
+@app.route('/crdt/endorsingRecords', methods=['POST'])
+def get_endorsing_records():
+    ask = cbor2.loads(request.data)
+
+    records = CRDT_INSTANCE.get_endorsing_records(ask['receive_id'],
+                                                  ask['current_frontier'],
+                                                  ask['proposed_frontier'])
+
+    if records is None:
+        return ("Cannot find valid endorsement run", 409)
+    return cbor2.dumps(records)
 
 
 def initialize_crdt_key():

@@ -64,7 +64,7 @@ class CrdtTransactionHandler(TransactionHandler):
         # transaction processor crashing.
         except (InvalidTransaction, InternalError) as e:
             # Directly forward any sawtooth exceptions
-            raise e
+            raise InvalidTransaction("Internal Invalid Transaction") from e
         except Exception as e:
             # Catch any non-sawtooth exceptions at a high level, and declare
             # the transaction invalid. Clients may retry as needed.
@@ -131,8 +131,11 @@ def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
 
     # Lookup the current frontier sqn.
     entity_blob = _get_state_data(make_entity_address(entity_id), context)
-    entity_pb = storage_pb2.Entity.ParseFromString(entity_blob)
+    entity_pb = storage_pb2.Entity()
+    entity_pb.ParseFromString(entity_blob)
     current_frontier = entity_pb.frontier_sequence_number
+    LOG.debug('requesting endorsement for (%d, %d] for entity %d',
+              current_frontier, proposed_frontier, entity_id)
 
     # ask the local CRDT for exchanges up to the new proposed frontier SQN
     crdt_request = {'receive_id': entity_id,
@@ -140,7 +143,7 @@ def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
                     'proposed_frontier': proposed_frontier,
                     }
 
-    response = requests.post(url=crdt_endpoint,
+    response = requests.post(url=crdt_endpoint + "/crdt/endorsingRecords",
                              data=cbor2.dumps(crdt_request),
                              headers={'Content-Type': 'application/octet-stream'})
     if not response.ok:
@@ -212,6 +215,10 @@ def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
         frontier = receive_sqn
 
     # Serialize the common receive buffer at the end of processing.
+    # TODO(matt9j) Fix LSB/MSB precision laziness.
+    frontier_sequence_number_lsb = frontier & 0xFFFFFFFFFFFFFFFF
+    frontier_sequence_number_msb = frontier >> 64
+    receiver_data.frontier_sequence_number = frontier_sequence_number_lsb
     _set_state_data(make_entity_address(exchange.receiver_id),
                     receiver_data.SerializeToString(),
                     context)

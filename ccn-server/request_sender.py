@@ -111,10 +111,12 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
     partial_exchange = handshake.Exchange.Partial()
     partial_exchange.ParseFromString(partial_exchange_blob)
 
+    # Update the partial exchange last valid receive sqn.
     previous_lsb = previous_sqn & 0xFFFFFFFFFFFFFFFF
     previous_msb = previous_sqn >> 64
     partial_exchange.receiver_previous_valid_sequence_number_lsb = previous_lsb
     partial_exchange.receiver_previous_valid_sequence_number_msb = previous_msb
+    partial_exchange_blob = partial_exchange.SerializeToString()
 
     # TODO(matt9j) Validate and lookup the community key.
     #community_verify_key.verify(partial_exchange.core_exchange,

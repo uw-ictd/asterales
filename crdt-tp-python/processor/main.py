@@ -86,7 +86,7 @@ def main(args=None):
 
         # The prefix should eventually be looked up from the
         # validator's namespace registry.
-        handler = CrdtTransactionHandler()
+        handler = CrdtTransactionHandler(opts.crdt)
 
         processor.add_handler(handler)
 
