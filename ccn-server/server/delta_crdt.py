@@ -1,7 +1,7 @@
 """A module containing the implementation of an optimized delta propagating CRDT
 """
 
-import cbor
+import cbor2
 import logging
 import lzma
 import requests
@@ -104,7 +104,7 @@ class DeltaPropCrdt(object):
     def process_neighbor_package(self, compressed_blob):
         # Unzip
         uncompressed_blob = lzma.decompress(compressed_blob)
-        payload = cbor.loads(uncompressed_blob)
+        payload = cbor2.loads(uncompressed_blob)
 
         source = payload["source"]
         package = payload["pkg"]
@@ -119,7 +119,7 @@ class DeltaPropCrdt(object):
                    "pkg": neighbor_package,
                    }
 
-        serialized_package = cbor.dumps(payload)
+        serialized_package = cbor2.dumps(payload)
         compressed_package = lzma.compress(serialized_package)
 
         res = requests.post(url="http://" + neighbor + ":5000/crdt/neighborPackage",
