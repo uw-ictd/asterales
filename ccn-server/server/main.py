@@ -389,7 +389,7 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
     ENTITY_ID = 1
-    HOSTNAME= args.host
+    HOSTNAME = args.host
 
     CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","),
                                        max_pending_delta_count=1000,
