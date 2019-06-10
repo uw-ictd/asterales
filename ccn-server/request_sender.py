@@ -48,14 +48,14 @@ def add_community(entity_id, verify_key):
         print(line)
 
 
-def add_user(community_signing_key, user_signing_key, user_verify_key, user_id):
+def add_user(community_signing_key, community_id, user_signing_key, user_verify_key, user_id):
     """Add a test user to the network."""
 
     new_user_info = storage.Entity()
     new_user_info.id = user_id
     new_user_info.verify_key = user_verify_key.encode(encoder=nacl.encoding.RawEncoder)
     new_user_info.user.display_name = "New User One".encode('utf8')
-    new_user_info.user.home_community_id = 1
+    new_user_info.user.home_community_id = community_id
 
     new_user_blob = new_user_info.SerializeToString()
     signature = community_signing_key.sign(new_user_blob).signature
@@ -135,9 +135,10 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
         data=full_exchange_blob,
         headers={'Content-Type': 'application/octet-stream'})
 
-    print(upload_response)
-    for line in upload_response.iter_lines():
-        print(line)
+    if not upload_response.ok:
+        print(upload_response)
+        for line in upload_response.iter_lines():
+            print(line)
 
 
 # Ask for a garbage collect.
@@ -177,17 +178,18 @@ if __name__ == "__main__":
     user_verify_key = user_signing_key.verify_key
     user_id = 2
 
-    add_user(community_signing_key, user_signing_key, user_verify_key, user_id)
+    add_user(community_signing_key, 1, user_signing_key, user_verify_key, user_id)
 
-    '''
     transfer_community_to_user(user_id=user_id,
-                               user_crdt_sqn=1337,
+                               user_crdt_sqn=10,
+                               previous_sqn=0,
                                amount=42,
                                user_signing_key=user_signing_key,
                                community_verify_key=community_verify_key,
                                upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload")
-                               '''
 
+    # Do a series of delta transactions.
+    '''
     transfer_community_to_user(user_id=user_id,
                                user_crdt_sqn=1337,
                                previous_sqn=0,
@@ -211,5 +213,6 @@ if __name__ == "__main__":
                                upload_uri="http://localhost:5000/exchange/deltaCrdtUpload")
 
     garbage_collect(user_id, 1338, "felix")
+    '''
 
 
