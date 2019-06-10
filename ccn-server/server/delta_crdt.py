@@ -30,7 +30,8 @@ class DeltaPropCrdt(object):
         self.delta_timeout_seconds = delta_timeout_seconds
         self.propagate_timer = None
         self.propagate_lock = threading.Lock()
-        self.logger = logging.getLogger(__name__ + ":" + self.host)
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
 
     def insert_exchange(self, source, record_blob):
         exchange = asterales_parsers.parse_exchange_record(record_blob)
@@ -63,20 +64,25 @@ class DeltaPropCrdt(object):
             elif self.propagate_timer is None:
                 self.propagate_timer = threading.Timer(self.delta_timeout_seconds,
                                                        self.propagate_delta).start()
+                self.logger.debug("scheduled propagate_timer: %s",
+                                  self.propagate_timer)
 
     def propagate_delta(self):
-        self.logger.info("propagating delta now")
+        self.logger.debug("Attempting to propagate delta now")
         if not self.propagate_lock.acquire(blocking=False):
             # If someone else is propagating then don't worry about servicing
             # this call to propagate too. As long as someone does the work
             # it's okay : )
+            self.logger.debug("Failed to acquire propagate lock")
             return
 
         try:
+            self.logger.debug("Propagating deltas now")
             # Cancel any outstanding propagate timers
             self.propagate_timer.cancel()
             self.propagate_timer = None
 
+            self.logger.debug("beginning to build propagation sets")
             # TODO(matt9j) This implementation maybe could be faster, or at
             #  least amortized!
             neighbor_packages = {}
@@ -87,6 +93,8 @@ class DeltaPropCrdt(object):
             while self.delta_set:
                 delta = self.delta_set.pop()
                 neighbors_to_send = self.neighbors - delta.sources
+                self.logger.debug("delta in the set sending to neighbors: %s",
+                                  neighbors_to_send)
                 for neighbor in neighbors_to_send:
                     # TODO(matt9j) Think about if this actually needs to send
                     #  the list of all the sources along to the next node.
@@ -95,6 +103,8 @@ class DeltaPropCrdt(object):
             for neighbor, package in neighbor_packages.items():
                 if len(package) != 0:
                     self.send_neighbor_package(neighbor, package)
+        except Exception as e:
+            self.logger.exception(e)
         finally:
             self.propagate_lock.release()
 
