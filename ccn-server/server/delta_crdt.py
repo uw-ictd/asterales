@@ -80,8 +80,9 @@ class DeltaPropCrdt(object):
         try:
             self.logger.debug("Propagating deltas now")
             # Cancel any outstanding propagate timers
-            self.propagate_timer.cancel()
-            self.propagate_timer = None
+            if self.propagate_timer is not None:
+                self.propagate_timer.cancel()
+                self.propagate_timer = None
 
             self.logger.debug("beginning to build propagation sets")
             # TODO(matt9j) This implementation maybe could be faster, or at
