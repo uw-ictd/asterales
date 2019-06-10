@@ -63,7 +63,8 @@ class DeltaPropCrdt(object):
                 self.propagate_delta()
             elif self.propagate_timer is None:
                 self.propagate_timer = threading.Timer(self.delta_timeout_seconds,
-                                                       self.propagate_delta).start()
+                                                       self.propagate_delta)
+                self.propagate_timer.start()
                 self.logger.debug("scheduled propagate_timer: %s",
                                   self.propagate_timer)
 
