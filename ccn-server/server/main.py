@@ -133,9 +133,16 @@ def ledger_crdt_upload():
     return result
 
 
+@app.route('/exchange/deltaCrdtUpload', methods=['POST'])
+def delta_crdt_upload():
+    CRDT_INSTANCE.insert_exchange(HOSTNAME, request.data)
+    return 'Upload Successful'
+
+
 @app.route('/crdt/neighborPackage', methods=['POST'])
 def receive_neighbor_package():
     CRDT_INSTANCE.process_neighbor_package(request.data)
+    return ''
 
 
 def initialize_crdt_key():
@@ -336,6 +343,7 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     SIGNING_KEY, VERIFY_KEY = initialize_crdt_key()
     ENTITY_ID = 1
+    HOSTNAME= args.host
 
     CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","))
 
