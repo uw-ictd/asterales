@@ -24,6 +24,7 @@ import requests
 
 import cbor
 import cbor2
+import yaml
 from flask import Flask
 from flask import request
 
@@ -130,7 +131,8 @@ def ledger_crdt_upload():
     exchange = asterales_parsers.parse_exchange_record(request.data)
     result = client.add_crdt_record(exchange.receiver_id,
                                     exchange.sender_id,
-                                    request.data)
+                                    request.data,
+                                    wait=5)
     return result
 
 
@@ -305,6 +307,7 @@ class SawtoothClient(object):
                 wait_time = time.time() - start_time
 
                 if status != 'PENDING':
+                    app.logger.debug("Got transaction status: %s", status)
                     return response
 
             return response
@@ -354,6 +357,11 @@ class SawtoothClient(object):
             transactions=transactions,
             header_signature=signature)
         return BatchList(batches=[batch])
+
+    def _get_status(self, batch_id, wait):
+        result = self._send_request(
+            'batch_statuses?id={}&wait={}'.format(batch_id, wait),)
+        return yaml.safe_load(result)['data'][0]['status']
 
     @staticmethod
     def _sha512(data):
