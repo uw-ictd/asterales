@@ -345,7 +345,9 @@ if __name__ == "__main__":
     ENTITY_ID = 1
     HOSTNAME= args.host
 
-    CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","))
+    CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","),
+                                       max_pending_delta_count=1000,
+                                       delta_timeout_seconds=10.0)
 
     client = SawtoothClient(url=args.sawtoothApi,
                             keyfile="/root/.sawtooth/keys/root.priv")

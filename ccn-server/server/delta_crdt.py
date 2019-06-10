@@ -2,15 +2,17 @@
 """
 
 import cbor
+import logging
 import lzma
 import requests
+import threading
 
 import asterales_protocol.parse_helpers as asterales_parsers
 
 
 class Element(object):
     def __init__(self, record):
-        self.sources = {}
+        self.sources = set()
         self.record_blob = record
 
     def add_source(self, source):
@@ -18,11 +20,17 @@ class Element(object):
 
 
 class DeltaPropCrdt(object):
-    def __init__(self, host, neighbors):
+    def __init__(self, host, neighbors, max_pending_delta_count,
+                 delta_timeout_seconds):
         self.delta_set = set()
         self.local_state = {}
         self.neighbors = neighbors
         self.host = host
+        self.max_delta_count = max_pending_delta_count
+        self.delta_timeout_seconds = delta_timeout_seconds
+        self.propagate_timer = None
+        self.propagate_lock = threading.Lock()
+        self.logger = logging.getLogger(__name__ + ":" + self.host)
 
     def insert_exchange(self, source, record_blob):
         exchange = asterales_parsers.parse_exchange_record(record_blob)
@@ -42,27 +50,53 @@ class DeltaPropCrdt(object):
         self.local_state[receiver_id][sequence_number].add_source(source)
 
         if inflates_state:
+            self.logger.debug("state inflated by rxid:%d, sqn:%d",
+                              receiver_id, sequence_number)
+
             self.delta_set.add(self.local_state[receiver_id][sequence_number])
 
+            # Send out our queued deltas once we start to get too many.
+            # TODO(matt9j) Make more dynamic based on available system
+            #  resources for better scaling.
+            if len(self.delta_set) >= self.max_delta_count:
+                self.propagate_delta()
+            elif self.propagate_timer is None:
+                self.propagate_timer = threading.Timer(self.delta_timeout_seconds,
+                                                       self.propagate_delta).start()
+
     def propagate_delta(self):
-        # TODO(matt9j) This implementation maybe could be faster, or at least
-        #  amortized!
-        neighbor_packages = {}
-        for neighbor in self.neighbors:
-            neighbor_packages[neighbor] = {}
+        self.logger.info("propagating delta now")
+        if not self.propagate_lock.acquire(blocking=False):
+            # If someone else is propagating then don't worry about servicing
+            # this call to propagate too. As long as someone does the work
+            # it's okay : )
+            return
 
-        # Sort the deltas into queues for neighbors that should get them
-        while self.delta_set:
-            delta = self.delta_set.pop()
-            neighbors_to_send = self.neighbors - delta.sources
-            for neighbor in neighbors_to_send:
-                # TODO(matt9j) Think about if this actually needs to send the
-                #  list of all the sources along to the next node.
-                neighbor_packages[neighbor].add(delta.record_blob)
+        try:
+            # Cancel any outstanding propagate timers
+            self.propagate_timer.cancel()
+            self.propagate_timer = None
 
-        for neighbor, package in neighbor_packages.items():
-            if len(package) != 0:
-                self.send_neighbor_package(neighbor, package)
+            # TODO(matt9j) This implementation maybe could be faster, or at
+            #  least amortized!
+            neighbor_packages = {}
+            for neighbor in self.neighbors:
+                neighbor_packages[neighbor] = {}
+
+            # Sort the deltas into queues for neighbors that should get them
+            while self.delta_set:
+                delta = self.delta_set.pop()
+                neighbors_to_send = self.neighbors - delta.sources
+                for neighbor in neighbors_to_send:
+                    # TODO(matt9j) Think about if this actually needs to send
+                    #  the list of all the sources along to the next node.
+                    neighbor_packages[neighbor].add(delta.record_blob)
+
+            for neighbor, package in neighbor_packages.items():
+                if len(package) != 0:
+                    self.send_neighbor_package(neighbor, package)
+        finally:
+            self.propagate_lock.release()
 
     def garbage_collect(self):
         raise NotImplementedError()
@@ -79,6 +113,8 @@ class DeltaPropCrdt(object):
             self.insert_exchange(source, delta_blob)
 
     def send_neighbor_package(self, neighbor, neighbor_package):
+        self.logger.info("sending deltas to neighbor %s", neighbor)
+
         payload = {"source": self.host,
                    "pkg": neighbor_package,
                    }
@@ -91,4 +127,5 @@ class DeltaPropCrdt(object):
                             headers={'Content-Type': 'application/octet-stream'})
 
         if not res.ok:
-            print(res)
+            self.logger.error("failed to send to neighbor %s. Response: %s",
+                              neighbor, res)
