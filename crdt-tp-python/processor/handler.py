@@ -36,6 +36,8 @@ import asterales_protocol.parse_helpers as asterales_parsers
 
 LOG = logging.getLogger(__name__)
 
+CRDT_SESSION = requests.session()
+
 
 class CrdtTransactionHandler(TransactionHandler):
     def __init__(self, crdt_endpoint):
@@ -144,9 +146,9 @@ def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
                     'proposed_frontier': proposed_frontier,
                     }
 
-    response = requests.post(url=crdt_endpoint + "/crdt/endorsingRecords",
-                             data=cbor2.dumps(crdt_request),
-                             headers={'Content-Type': 'application/octet-stream'})
+    response = CRDT_SESSION.post(url=crdt_endpoint + "/crdt/endorsingRecords",
+                                 data=cbor2.dumps(crdt_request),
+                                 headers={'Content-Type': 'application/octet-stream'})
     if not response.ok:
         LOG.error("Unable to request endorsing crdt records %s", response)
         raise InvalidTransaction("Unable to request endorsement from CRDT")

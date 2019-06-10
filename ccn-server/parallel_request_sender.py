@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing
 import nacl.signing
+import requests
 import timeit
 
 from functools import partial
@@ -40,6 +41,7 @@ class FakeUser(object):
 
 
 def _send_messages(messages_per_user, community_verify_key, mapped_user):
+    session = requests.session()
     for message_i in range(messages_per_user):
         sender.transfer_community_to_user(
             user_id=mapped_user.id,
@@ -48,8 +50,10 @@ def _send_messages(messages_per_user, community_verify_key, mapped_user):
             amount=42,
             user_signing_key=mapped_user.signing_key,
             community_verify_key=community_verify_key,
-            upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload")
+            upload_uri="http://localhost:5000/exchange/ledgerCrdtUpload",
+            http_session=session)
         mapped_user.sqn += 1
+
 
 class ParallelRequester(object):
     def __init__(self, server_url, user_count, message_count, max_parallel):

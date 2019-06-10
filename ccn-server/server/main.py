@@ -217,6 +217,7 @@ class CrdtClientException(Exception):
 class SawtoothClient(object):
     def __init__(self, url, keyfile=None):
         self.base_url = url
+        self.rest_api_session = requests.session()
 
         if keyfile is not None:
             with open(keyfile) as fd:
@@ -325,7 +326,9 @@ class SawtoothClient(object):
 
         try:
             if data is not None:
-                result = requests.post(url, headers=headers, data=data)
+                result = self.rest_api_session.post(url,
+                                                    headers=headers,
+                                                    data=data)
             else:
                 result = requests.get(url, headers=headers)
 

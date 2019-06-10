@@ -76,12 +76,16 @@ def add_user(community_signing_key, community_id, user_signing_key, user_verify_
 
 # Generate an exchange between the user and community.
 def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, user_signing_key,
-                               community_verify_key, upload_uri):
+                               community_verify_key, upload_uri, http_session=None):
     """Transfer funds from the community to the user.
 
     Since the user is receiving, the user is responsible for ensuring the
     upload succeeds and picking a valid crdt sqn.
     """
+    # Create a new server session if required
+    if http_session is None:
+        http_session = requests.Session()
+
     if user_crdt_sqn < 0:
         raise ValueError("the sequence number must be positive")
 
@@ -95,7 +99,7 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
                     }
 
     serialized_send_request = cbor.dumps(send_request)
-    initiate_response = requests.post(
+    initiate_response = http_session.post(
         url="http://localhost:5000/exchange/initiateSend",
         data=serialized_send_request,
         headers={'Content-Type': 'application/octet-stream'})
@@ -130,7 +134,7 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
 
     full_exchange_blob = full_exchange.SerializeToString()
 
-    upload_response = requests.post(
+    upload_response = http_session.post(
         url=upload_uri,
         data=full_exchange_blob,
         headers={'Content-Type': 'application/octet-stream'})
@@ -142,9 +146,13 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
 
 
 # Ask for a garbage collect.
-def garbage_collect(user_id, crdt_sqn, host):
+def garbage_collect(user_id, crdt_sqn, host, http_session=None):
     """Garbage collect outstanding records from a user
     """
+    # Create a new server session if required
+    if http_session is None:
+        http_session = requests.Session()
+
     if crdt_sqn < 0:
         raise ValueError("the sequence number must be positive")
 
@@ -154,7 +162,7 @@ def garbage_collect(user_id, crdt_sqn, host):
                        }
 
     serialized_flatten_request = cbor.dumps(flatten_request)
-    response = requests.post(
+    response = http_session.post(
         url="http://localhost:5000/crdt/flattenDeltaCrdt",
         data=serialized_flatten_request,
         headers={'Content-Type': 'application/octet-stream'})
