@@ -64,6 +64,7 @@ class CrdtTransactionHandler(TransactionHandler):
         # transaction processor crashing.
         except (InvalidTransaction, InternalError) as e:
             # Directly forward any sawtooth exceptions
+            LOG.exception(e)
             raise InvalidTransaction("Internal Invalid Transaction") from e
         except Exception as e:
             # Catch any non-sawtooth exceptions at a high level, and declare
