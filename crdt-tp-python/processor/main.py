@@ -39,6 +39,11 @@ def parse_args(args):
         default='tcp://localhost:4004',
         help='Endpoint for the validator connection')
 
+    parser.add_argument(
+        '--crdt',
+        help='The endpoint for the crdt connection.'
+    )
+
     parser.add_argument('-v', '--verbose',
                         action='count',
                         default=0,

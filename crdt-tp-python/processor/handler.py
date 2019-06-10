@@ -17,9 +17,11 @@
 import logging
 
 import cbor
+import cbor2
 import nacl.signing
 import nacl.encoding
 import nacl.exceptions
+import requests
 
 from sawtooth_sdk.processor.exceptions import InternalError
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
@@ -36,6 +38,9 @@ LOG = logging.getLogger(__name__)
 
 
 class CrdtTransactionHandler(TransactionHandler):
+    def __init__(self, crdt_endpoint):
+        self._crdt_endpoint = crdt_endpoint
+
     @property
     def family_name(self):
         return FAMILY_METADATA['name']
@@ -52,7 +57,7 @@ class CrdtTransactionHandler(TransactionHandler):
         try:
             action, action_payload = _unpack_transaction(transaction)
 
-            _do_action(action, action_payload, context)
+            _do_action(action, action_payload, context, self._crdt_endpoint)
         # In Sawtooth (at least version 1.0.*) InternalErrors will result in
         # a retry, InvalidTransaction errors will reject the block,
         # and generic python errors will not be caught and will result in the
@@ -101,15 +106,115 @@ def _validate_action(action):
         raise InvalidTransaction('Action must be in' + str(ActionTypes))
 
 
-def _do_action(action, action_payload, context):
+def _do_action(action, action_payload, context, crdt_endpoint):
     if action == ActionTypes.ADD_USER:
         _add_user(action_payload, context)
     elif action == ActionTypes.ADD_NET:
         _add_net(action_payload, context)
     elif action == ActionTypes.ADD_LEDGER_CRDT:
         _add_ledger_crdt(action_payload, context)
+    elif action == ActionTypes.FLATTEN_DELTA_CRDT:
+        _flatten_delta_crdt(action_payload, context, crdt_endpoint)
     else:
         raise NotImplementedError("The action" + str(action) + " is not supported yet.")
+
+
+def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
+    """Flattens contiguous local CRDT records into the entity state"""
+
+    # Parse the request.
+    flatten_request = cbor2.loads(action_payload)
+    # TODO(matt9j) Use the origin as a fallback if deltas are missing.
+    # request_origin = flatten_request['origin']
+    entity_id = flatten_request['entity_id']
+    proposed_frontier = flatten_request['sqn']
+
+    # Lookup the current frontier sqn.
+    entity_blob = _get_state_data(make_entity_address(entity_id), context)
+    entity_pb = storage_pb2.Entity.ParseFromString(entity_blob)
+    current_frontier = entity_pb.frontier_sequence_number
+
+    # ask the local CRDT for exchanges up to the new proposed frontier SQN
+    crdt_request = {'receive_id': entity_id,
+                    'current_frontier': current_frontier,
+                    'proposed_frontier': proposed_frontier,
+                    }
+
+    response = requests.post(url=crdt_endpoint,
+                             data=cbor2.dumps(crdt_request),
+                             headers={'Content-Type': 'application/octet-stream'})
+    if not response.ok:
+        LOG.error("Unable to request endorsing crdt records %s", response)
+        raise InvalidTransaction("Unable to request endorsement from CRDT")
+
+    # Set aside the receiver information
+    receiver_blob = _get_state_data(make_entity_address(entity_id),
+                                    context)
+    receiver_data = storage_pb2.Entity()
+    receiver_data.ParseFromString(receiver_blob)
+    receive_verify_key = nacl.signing.VerifyKey(receiver_data.verify_key,
+                                                encoder=nacl.encoding.RawEncoder)
+
+    # exchanges must be sorted already in ascending order by sequence number
+    exchanges = cbor2.loads(response.content)
+    frontier = current_frontier
+
+    # TODO(matt9j) Possibly speedup by re-using exchange protobufs
+    # validate all the exchanges
+    for exchange_blob in exchanges:
+        if frontier >= proposed_frontier:
+            LOG.warning("Got too many exchange records or bad frontier req?!")
+            break
+
+        exchange = asterales_parsers.parse_exchange_record(exchange_blob)
+        receive_sqn = exchange.receiver_sequence_number_msb * (2 ** 64) + \
+                      exchange.receiver_sequence_number_lsb
+        last_valid_receive_sqn = exchange.last_valid_sequence_number_msb * (2**64) + \
+                                 exchange.last_valid_sequence_number_lsb
+        # Validate signatures
+        try:
+            receive_verify_key.verify(exchange.receiver_signed_blob,
+                                      exchange.receiver_signature,
+                                      encoder=nacl.encoding.RawEncoder)
+        except nacl.exceptions.BadSignatureError as e:
+            LOG.error(e)
+            raise InvalidTransaction('Exchange receive signature invalid sqn:{}'.format(
+                receive_sqn))
+
+        sender_blob = _get_state_data(make_entity_address(exchange.sender_id),
+                                      context)
+        sender_data = storage_pb2.Entity()
+        sender_data.ParseFromString(sender_blob)
+        sender_verify_key = nacl.signing.VerifyKey(sender_data.verify_key,
+                                                   encoder=nacl.encoding.RawEncoder)
+        try:
+            sender_verify_key.verify(exchange.sender_signed_blob,
+                                     exchange.sender_signature,
+                                     encoder=nacl.encoding.RawEncoder)
+        except nacl.exceptions.BadSignatureError:
+            raise InvalidTransaction('Exchange send signature invalid sqn:{}'.format(
+                receive_sqn))
+
+        if last_valid_receive_sqn != frontier:
+            LOG.warning("Gap discovered-- in this hacky initial implementation"
+                        " state may now be corrupted.")
+            raise InvalidTransaction()
+
+        receiver_data.balance += exchange.amount
+
+        # TODO(matt9j) Don't serialize all the send messages until done! Some
+        #  may be repeated...
+        sender_data.balance -= exchange.amount
+        _set_state_data(make_entity_address(exchange.sender_id),
+                        sender_data.SerializeToString(),
+                        context)
+
+        frontier = receive_sqn
+
+    # Serialize the common receive buffer at the end of processing.
+    _set_state_data(make_entity_address(exchange.receiver_id),
+                    receiver_data.SerializeToString(),
+                    context)
 
 
 def _add_ledger_crdt(action_payload, context):

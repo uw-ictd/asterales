@@ -39,7 +39,7 @@ class ActionTypes(enum.Enum):
     ADD_USER = 0
     ADD_NET = 1
     ADD_LEDGER_CRDT = 2
-    TOP_UP = 3
+    FLATTEN_DELTA_CRDT = 3
 
 
 def make_crdt_address(entity_id):

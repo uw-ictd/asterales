@@ -23,6 +23,7 @@ import time
 import requests
 
 import cbor
+import cbor2
 from flask import Flask
 from flask import request
 
@@ -133,6 +134,16 @@ def ledger_crdt_upload():
     return result
 
 
+@app.route('/crdt/flattenDeltaCrdt')
+def flatten_crdt():
+    flatten_request = cbor2.loads(request.data)
+    receive_id = flatten_request['entity_id']
+    proposed_frontier_sqn = flatten_request['sqn']
+    sender_ids = CRDT_INSTANCE.get_impacted_senders(receive_id)
+    return client.flatten_delta_crdt(receive_id, sender_ids,
+                                     proposed_frontier_sqn)
+
+
 @app.route('/exchange/deltaCrdtUpload', methods=['POST'])
 def delta_crdt_upload():
     CRDT_INSTANCE.insert_exchange(HOSTNAME, request.data)
@@ -225,6 +236,17 @@ class SawtoothClient(object):
         address = make_entity_address(user_id)
         return self._send_transaction(ActionTypes.ADD_USER.value, payload,
                                       [address], wait=wait)
+
+    def flatten_delta_crdt(self, receiver_id, sender_ids, sequence, wait=None):
+        addresses = [make_entity_address(receiver_id)]
+        for sender in sender_ids:
+            addresses.append(make_entity_address(sender))
+
+        message = {'entity_id': receiver_id, 'sqn': sequence}
+
+        return self._send_transaction(ActionTypes.FLATTEN_DELTA_CRDT.value,
+                                      cbor2.dumps(message),
+                                      addresses, wait=wait)
 
     def _send_transaction(self, action, action_payload, addresses, wait=None):
         payload = cbor.dumps({
@@ -347,7 +369,7 @@ if __name__ == "__main__":
 
     CRDT_INSTANCE = crdt.DeltaPropCrdt(args.host, args.neighbors.split(","),
                                        max_pending_delta_count=1000,
-                                       delta_timeout_seconds=10.0)
+                                       delta_timeout_seconds=2.0)
 
     client = SawtoothClient(url=args.sawtoothApi,
                             keyfile="/root/.sawtooth/keys/root.priv")

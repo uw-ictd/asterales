@@ -18,6 +18,10 @@ message Entity {
     // The entity's current balance.
     int64 balance = 3;
 
+    // The greatest sequence number currently incorporated into the entity's
+    // balance.
+    uint64 frontier_sequence_number = 4;
+
     oneof entity_subtype {
         CommunityServer server = 6;
         User user = 7;

@@ -18,6 +18,8 @@ UnpackedExchangeRecord = collections.namedtuple("UnpackedExchangeRecord", [
     "receiver_id",
     "receiver_sequence_number_lsb",
     "receiver_sequence_number_msb",
+    "last_valid_sequence_number_lsb",
+    "last_valid_sequence_number_msb",
     "amount",
     "currency",
 ])
@@ -42,6 +44,8 @@ def parse_exchange_record(record_blob):
         receiver_id=core_exchange.receiver_id,
         receiver_sequence_number_lsb=core_exchange.receiver_sequence_number_lsb,
         receiver_sequence_number_msb=core_exchange.receiver_sequence_number_msb,
+        last_valid_sequence_number_lsb=sender_exchange.receiver_previous_valid_sequence_number_lsb,
+        last_valid_sequence_number_msb=sender_exchange.receiver_previous_valid_sequence_number_msb,
         amount=core_exchange.amount,
         currency=core_exchange.currency
     )

@@ -8,6 +8,7 @@ sawtooth-sdk = "<1.2"
 cbor = "*"
 requests = "*"
 pynacl = "*"
+cbor2 = "*"
 
 [dev-packages]
 

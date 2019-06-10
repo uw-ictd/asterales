@@ -11,8 +11,10 @@ import asterales_protocol.parse_helpers as asterales_parsers
 
 
 class Element(object):
-    def __init__(self, record):
+    def __init__(self, record, sender, previous_sqn):
         self.sources = set()
+        self.sender = sender
+        self.previous_sqn = previous_sqn
         self.record_blob = record
 
     def add_source(self, source):
@@ -38,6 +40,8 @@ class DeltaPropCrdt(object):
         receiver_id = exchange.receiver_id
         sequence_number = (exchange.receiver_sequence_number_msb * (2**64)
                            + exchange.receiver_sequence_number_lsb)
+        last_valid_receive_sqn = exchange.last_valid_sequence_number_msb * (2**64) + \
+                                 exchange.last_valid_sequence_number_lsb
 
         inflates_state = False
         if exchange.receiver_id not in self.local_state:
@@ -46,7 +50,8 @@ class DeltaPropCrdt(object):
 
         if sequence_number not in self.local_state[receiver_id]:
             inflates_state = True
-            self.local_state[receiver_id][sequence_number] = Element(record_blob)
+            self.local_state[receiver_id][sequence_number] = \
+                Element(record_blob, exchange.sender_id, last_valid_receive_sqn)
 
         self.local_state[receiver_id][sequence_number].add_source(source)
 
@@ -110,7 +115,16 @@ class DeltaPropCrdt(object):
         finally:
             self.propagate_lock.release()
 
+    def get_impacted_senders(self, receiver_id):
+        senders = set()
+        for element in self.local_state[receiver_id]:
+            senders.add(element.sender)
+
     def garbage_collect(self):
+        # identify runs
+        # for each run, upload to ledger the maximum sqn of the run
+        # on commit validator will reach out to confirm,
+        # and we can delete run from local storage
         raise NotImplementedError()
 
     def process_neighbor_package(self, compressed_blob):

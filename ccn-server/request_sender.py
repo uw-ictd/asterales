@@ -75,7 +75,7 @@ def add_user(community_signing_key, user_signing_key, user_verify_key, user_id):
 
 
 # Generate an exchange between the user and community.
-def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
+def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, user_signing_key,
                                community_verify_key, upload_uri):
     """Transfer funds from the community to the user.
 
@@ -111,12 +111,15 @@ def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
     partial_exchange = handshake.Exchange.Partial()
     partial_exchange.ParseFromString(partial_exchange_blob)
 
+    previous_lsb = previous_sqn & 0xFFFFFFFFFFFFFFFF
+    previous_msb = previous_sqn >> 64
+    partial_exchange.receiver_previous_valid_sequence_number_lsb = previous_lsb
+    partial_exchange.receiver_previous_valid_sequence_number_msb = previous_msb
+
     # TODO(matt9j) Validate and lookup the community key.
     #community_verify_key.verify(partial_exchange.core_exchange,
     #                            partial_exchange.sender_signature)
     # TODO(matt9j) Validate core blob actually matches what we wanted to do.
-
-    # TODO(matt9j) Handle SQN gaps once processing is allowed in parallel.
     full_exchange = handshake.Exchange()
     full_exchange.partial_exchange = partial_exchange_blob
     full_exchange.receiver_signature = user_signing_key.sign(
@@ -133,6 +136,31 @@ def transfer_community_to_user(user_id, user_crdt_sqn, amount, user_signing_key,
     print(upload_response)
     for line in upload_response.iter_lines():
         print(line)
+
+
+# Ask for a garbage collect.
+def garbage_collect(user_id, crdt_sqn, host):
+    """Garbage collect outstanding records from a user
+    """
+    if crdt_sqn < 0:
+        raise ValueError("the sequence number must be positive")
+
+    flatten_request = {"origin": host,
+                       "sqn": crdt_sqn,
+                       "entity_id": user_id,
+                       }
+
+    serialized_flatten_request = cbor.dumps(flatten_request)
+    response = requests.post(
+        url="http://localhost:5000/crdt/flattenDeltaCrdt",
+        data=serialized_flatten_request,
+        headers={'Content-Type': 'application/octet-stream'})
+
+    if not response.ok:
+        print(response)
+        for line in response.iter_lines():
+            print(line)
+        raise RuntimeError("the flatten was rejected by the community server")
 
 
 if __name__ == "__main__":
@@ -160,7 +188,26 @@ if __name__ == "__main__":
 
     transfer_community_to_user(user_id=user_id,
                                user_crdt_sqn=1337,
+                               previous_sqn=0,
                                amount=42,
                                user_signing_key=user_signing_key,
                                community_verify_key=community_verify_key,
                                upload_uri="http://localhost:5000/exchange/deltaCrdtUpload")
+    transfer_community_to_user(user_id=user_id,
+                               user_crdt_sqn=1338,
+                               previous_sqn=1337,
+                               amount=42,
+                               user_signing_key=user_signing_key,
+                               community_verify_key=community_verify_key,
+                               upload_uri="http://localhost:5000/exchange/deltaCrdtUpload")
+    transfer_community_to_user(user_id=user_id,
+                               user_crdt_sqn=1339,
+                               previous_sqn=1338,
+                               amount=42,
+                               user_signing_key=user_signing_key,
+                               community_verify_key=community_verify_key,
+                               upload_uri="http://localhost:5000/exchange/deltaCrdtUpload")
+
+    garbage_collect(user_id, 1338, "felix")
+
+

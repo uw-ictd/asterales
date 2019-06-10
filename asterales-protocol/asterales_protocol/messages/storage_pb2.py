@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='asterales.storage',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rstorage.proto\x12\x11\x61sterales.storage\"\xaa\x01\n\x06\x45ntity\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x03 \x01(\x03\x12\x34\n\x06server\x18\x06 \x01(\x0b\x32\".asterales.storage.CommunityServerH\x00\x12\'\n\x04user\x18\x07 \x01(\x0b\x32\x17.asterales.storage.UserH\x00\x42\x10\n\x0e\x65ntity_subtype\"\'\n\x0f\x43ommunityServer\x12\x14\n\x0c\x64isplay_name\x18\x10 \x01(\t\"7\n\x04User\x12\x19\n\x11home_community_id\x18\x01 \x01(\x03\x12\x14\n\x0c\x64isplay_name\x18\x10 \x01(\t\"\xad\x02\n\x0e\x45xchangeRecord\x12\x11\n\tsender_id\x18\x01 \x01(\x03\x12\x13\n\x0breceiver_id\x18\x02 \x01(\x03\x12$\n\x1creceiver_sequence_number_lsb\x18\x03 \x01(\x04\x12$\n\x1creceiver_sequence_number_msb\x18\x04 \x01(\x04\x12\x0e\n\x06\x61mount\x18\x05 \x01(\x03\x12-\n\x08\x63urrency\x18\x06 \x01(\x0e\x32\x1b.asterales.storage.Currency\x12\x33\n+receiver_previous_valid_sequence_number_lsb\x18\x07 \x01(\x04\x12\x33\n+receiver_previous_valid_sequence_number_msb\x18\x08 \x01(\x04*-\n\x08\x43urrency\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07NETWORK\x10\x01\x12\x07\n\x03USD\x10\x02\x62\x06proto3')
+  serialized_pb=_b('\n\rstorage.proto\x12\x11\x61sterales.storage\"\xcc\x01\n\x06\x45ntity\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x12\n\nverify_key\x18\x02 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x03 \x01(\x03\x12 \n\x18\x66rontier_sequence_number\x18\x04 \x01(\x04\x12\x34\n\x06server\x18\x06 \x01(\x0b\x32\".asterales.storage.CommunityServerH\x00\x12\'\n\x04user\x18\x07 \x01(\x0b\x32\x17.asterales.storage.UserH\x00\x42\x10\n\x0e\x65ntity_subtype\"\'\n\x0f\x43ommunityServer\x12\x14\n\x0c\x64isplay_name\x18\x10 \x01(\t\"7\n\x04User\x12\x19\n\x11home_community_id\x18\x01 \x01(\x03\x12\x14\n\x0c\x64isplay_name\x18\x10 \x01(\t\"\xad\x02\n\x0e\x45xchangeRecord\x12\x11\n\tsender_id\x18\x01 \x01(\x03\x12\x13\n\x0breceiver_id\x18\x02 \x01(\x03\x12$\n\x1creceiver_sequence_number_lsb\x18\x03 \x01(\x04\x12$\n\x1creceiver_sequence_number_msb\x18\x04 \x01(\x04\x12\x0e\n\x06\x61mount\x18\x05 \x01(\x03\x12-\n\x08\x63urrency\x18\x06 \x01(\x0e\x32\x1b.asterales.storage.Currency\x12\x33\n+receiver_previous_valid_sequence_number_lsb\x18\x07 \x01(\x04\x12\x33\n+receiver_previous_valid_sequence_number_msb\x18\x08 \x01(\x04*-\n\x08\x43urrency\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07NETWORK\x10\x01\x12\x07\n\x03USD\x10\x02\x62\x06proto3')
 )
 
 _CURRENCY = _descriptor.EnumDescriptor(
@@ -45,8 +45,8 @@ _CURRENCY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=611,
-  serialized_end=656,
+  serialized_start=645,
+  serialized_end=690,
 )
 _sym_db.RegisterEnumDescriptor(_CURRENCY)
 
@@ -86,14 +86,21 @@ _ENTITY = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='server', full_name='asterales.storage.Entity.server', index=3,
+      name='frontier_sequence_number', full_name='asterales.storage.Entity.frontier_sequence_number', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='server', full_name='asterales.storage.Entity.server', index=4,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='user', full_name='asterales.storage.Entity.user', index=4,
+      name='user', full_name='asterales.storage.Entity.user', index=5,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -115,7 +122,7 @@ _ENTITY = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=37,
-  serialized_end=207,
+  serialized_end=241,
 )
 
 
@@ -145,8 +152,8 @@ _COMMUNITYSERVER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=209,
-  serialized_end=248,
+  serialized_start=243,
+  serialized_end=282,
 )
 
 
@@ -183,8 +190,8 @@ _USER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=250,
-  serialized_end=305,
+  serialized_start=284,
+  serialized_end=339,
 )
 
 
@@ -263,8 +270,8 @@ _EXCHANGERECORD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=308,
-  serialized_end=609,
+  serialized_start=342,
+  serialized_end=643,
 )
 
 _ENTITY.fields_by_name['server'].message_type = _COMMUNITYSERVER
