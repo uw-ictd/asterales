@@ -74,6 +74,7 @@ services:
       - "~/keys:/shared_keys"
     ports:
       - "4004:4004"
+      - "8800:8800"
     # start the validator with an empty genesis batch
     entrypoint: "bash -c \"\
       sawadm keygen validator-1 && \
@@ -119,6 +120,7 @@ services:
       - "~/keys:/shared_keys"
     ports:
       - "4005:4004"
+      - "8801:8800"
     entrypoint: "bash -c \"\
       while true; do if [ -e /shared_keys/validator-1.pub ]; then mv /shared_keys/validator-1.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-1.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
       echo $$(cat /etc/sawtooth/keys/validator.pub); \

@@ -71,6 +71,8 @@ services:
       - 5050
     volumes:
       - "~/keys:/shared_keys"
+    ports:
+      - "8800:8800"
     entrypoint: "bash -c \"\
       while true; do if [ -e /shared_keys/validator-2.pub ]; then mv /shared_keys/validator-2.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-2.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
       echo $$(cat /etc/sawtooth/keys/validator.pub); \
@@ -80,7 +82,7 @@ services:
         --bind network:tcp://eth0:8800 \
         --bind consensus:tcp://eth0:5050 \
         --peering static \
-        --peers tcp://validator-0:8800,tcp://validator-1:8800
+        --peers tcp://10.0.0.2:8800,tcp://10.0.0.2:8801
         --scheduler parallel \
         --maximum-peer-connectivity 3 \
       \""
@@ -93,6 +95,8 @@ services:
       - 4004
       - 8800
       - 5050
+    ports:
+      - "8801:8800"
     volumes:
       - "~/keys:/shared_keys"
     entrypoint: "bash -c \"\
@@ -104,7 +108,7 @@ services:
         --bind network:tcp://eth0:8800 \
         --bind consensus:tcp://eth0:5050 \
         --peering static \
-        --peers tcp://validator-0:8800,tcp://validator-1:8800,tcp://validator-2:8800
+        --peers tcp://10.0.0.2:8800,tcp://10.0.0.2:8801,tcp://validator-2:8800
         --scheduler parallel \
         --maximum-peer-connectivity 3 \
       \""
