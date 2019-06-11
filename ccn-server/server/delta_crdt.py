@@ -191,7 +191,7 @@ class DeltaPropCrdt(object):
         serialized_package = cbor2.dumps(payload)
         compressed_package = lzma.compress(serialized_package)
 
-        res = requests.post(url="http://" + neighbor + ":5000/crdt/neighborPackage",
+        res = requests.post(url="http://" + neighbor + "/crdt/neighborPackage",
                             data=compressed_package,
                             headers={'Content-Type': 'application/octet-stream'})
 
