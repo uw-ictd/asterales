@@ -125,14 +125,14 @@ def _do_action(action, action_payload, context, crdt_endpoint):
 
 def _flatten_delta_crdt(action_payload, context, crdt_endpoint):
     """Flattens contiguous local CRDT records into the entity state"""
-    LOG.info("Flattening delta crdt")
-
     # Parse the request.
     flatten_request = cbor2.loads(action_payload)
     # TODO(matt9j) Use the origin as a fallback if deltas are missing.
     # request_origin = flatten_request['origin']
     entity_id = flatten_request['entity_id']
     proposed_frontier = flatten_request['sqn']
+    LOG.info("Attempting to flatten delta crdt for id: %d to frontier_sqn: %d",
+             entity_id, proposed_frontier)
 
     # Lookup the current frontier sqn.
     entity_blob = _get_state_data(make_entity_address(entity_id), context)
