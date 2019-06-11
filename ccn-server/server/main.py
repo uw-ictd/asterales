@@ -58,7 +58,7 @@ def register_user():
     app.logger.debug("got register network")
     new_user_blob = request.data
     user_id = _parse_user_id_from_add_user(new_user_blob)
-    result = client.add_user(user_id, request.data)
+    result = client.add_user(user_id, request.data, wait=5)
     return result
 
 
