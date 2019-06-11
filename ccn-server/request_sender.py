@@ -17,9 +17,10 @@ def set_server_data(entity_id, signing_key):
                         data=cbor.dumps(data),
                         headers={'Content-Type': 'application/octet-stream'})
 
-    print(res)
-    for line in res.iter_lines():
-        print(line)
+    if not res.ok:
+        print(res)
+        for line in res.iter_lines():
+            print(line)
 
 
 def add_community(entity_id, verify_key):
@@ -43,9 +44,10 @@ def add_community(entity_id, verify_key):
                         data=binary_add_community,
                         headers={'Content-Type': 'application/octet-stream'})
 
-    print(res)
-    for line in res.iter_lines():
-        print(line)
+    if not res.ok:
+        print(res)
+        for line in res.iter_lines():
+            print(line)
 
 
 def add_user(community_signing_key, community_id, user_signing_key, user_verify_key, user_id):
@@ -69,9 +71,10 @@ def add_user(community_signing_key, community_id, user_signing_key, user_verify_
                         data=binary_add_user,
                         headers={'Content-Type': 'application/octet-stream'})
 
-    print(res)
-    for line in res.iter_lines():
-        print(line)
+    if not res.ok:
+        print(res)
+        for line in res.iter_lines():
+            print(line)
 
 
 # Generate an exchange between the user and community.
@@ -145,8 +148,20 @@ def transfer_community_to_user(user_id, user_crdt_sqn, previous_sqn, amount, use
             print(line)
 
 
+def force_delta_propagation(http_session):
+    response = http_session.post(
+        url="http://localhost:5000/crdt/forceDeltaPropagate",
+        data='',
+        headers={'Content-Type': 'application/octet-stream'})
+    if not response.ok:
+        print(response)
+        for line in response.iter_lines():
+            print(line)
+        raise RuntimeError("propagation force rejected by the community server")
+
+
 # Ask for a garbage collect.
-def garbage_collect(user_id, crdt_sqn, host, http_session=None):
+def garbage_collect(user_id, crdt_sqn, host=None, http_session=None):
     """Garbage collect outstanding records from a user
     """
     # Create a new server session if required
