@@ -71,7 +71,7 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
+      - "~/keys:/shared_keys"
     ports:
       - "4004:4004"
     # start the validator with an empty genesis batch
@@ -116,7 +116,7 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
+      - "~/keys:/shared_keys"
     ports:
       - "4005:4004"
     entrypoint: "bash -c \"\

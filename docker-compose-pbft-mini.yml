@@ -70,7 +70,7 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
+      - "~/keys:/shared_keys"
     entrypoint: "bash -c \"\
       while true; do if [ -e /shared_keys/validator-2.pub ]; then mv /shared_keys/validator-2.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-2.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
       echo $$(cat /etc/sawtooth/keys/validator.pub); \
@@ -94,7 +94,7 @@ services:
       - 8800
       - 5050
     volumes:
-      - keys:/shared_keys
+      - "~/keys:/shared_keys"
     entrypoint: "bash -c \"\
       while true; do if [ -e /shared_keys/validator-3.pub ]; then mv /shared_keys/validator-3.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-3.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
       echo $$(cat /etc/sawtooth/keys/validator.pub); \
