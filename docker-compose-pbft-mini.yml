@@ -186,7 +186,7 @@ services:
     image: hyperledger/sawtooth-all:1.1
     container_name: sawtooth-shell
     depends_on:
-      - rest-api-0
+      - rest-api-2
     entrypoint: "bash -c \"\
       sawtooth keygen ; \
       tail -f /dev/null \
