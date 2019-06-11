@@ -1,0 +1,193 @@
+# Launches a minimum development network with a single default validator
+#
+# TODO(matt9j) Formalize keyhandling
+
+# The mini computer is responsible for validators 2 and 3
+version: "3"
+
+volumes:
+  keys:
+
+services:
+
+  settings-tp-2:
+    image: hyperledger/sawtooth-settings-tp:1.1
+    depends_on:
+      - validator-2
+    entrypoint: settings-tp -vv -C tcp://validator-2:4004
+
+  settings-tp-3:
+    image: hyperledger/sawtooth-settings-tp:1.1
+    depends_on:
+      - validator-3
+    entrypoint: settings-tp -vv -C tcp://validator-3:4004
+
+  identity-tp-2:
+    image: hyperledger/sawtooth-identity-tp:1.1
+    depends_on:
+      - validator-2
+    entrypoint: identity-tp -vv -C tcp://validator-2:4004
+
+  identity-tp-3:
+    image: hyperledger/sawtooth-identity-tp:1.1
+    depends_on:
+      - validator-3
+    entrypoint: identity-tp -vv -C tcp://validator-3:4004
+
+  crdt-tp-2:
+    build:
+      context: ./
+      dockerfile: crdt-tp-python/Dockerfile
+    #image: matt9j/crdt-tp-python:staging
+    container_name: crdt-tp-python-2
+    depends_on:
+      - validator-2
+    entrypoint: "python3 crdt-tp-python/processor/main.py \
+      --crdt http://ccn-server-2:5000 \
+      -C tcp://validator-2:4004 \
+      -vv
+      "
+
+  crdt-tp-3:
+    build:
+      context: ./
+      dockerfile: crdt-tp-python/Dockerfile
+    #image: matt9j/crdt-tp-python:staging
+    container_name: crdt-tp-python-3
+    depends_on:
+      - validator-3
+    entrypoint: "python3 crdt-tp-python/processor/main.py \
+      --crdt http://ccn-server-3:5000 \
+      -C tcp://validator-3:4004 \
+      -vv
+      "
+
+  validator-2:
+    image: hyperledger/sawtooth-validator:1.1
+    container_name: sawtooth-validator-2
+    expose:
+      - 4004
+      - 8800
+      - 5050
+    volumes:
+      - keys:/shared_keys
+    entrypoint: "bash -c \"\
+      while true; do if [ -e /shared_keys/validator-2.pub ]; then mv /shared_keys/validator-2.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-2.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
+      echo $$(cat /etc/sawtooth/keys/validator.pub); \
+      sawtooth-validator \
+        --endpoint tcp://validator-2:8800 \
+        --bind component:tcp://eth0:4004 \
+        --bind network:tcp://eth0:8800 \
+        --bind consensus:tcp://eth0:5050 \
+        --peering static \
+        --peers tcp://validator-0:8800,tcp://validator-1:8800
+        --scheduler parallel \
+        --maximum-peer-connectivity 3 \
+      \""
+    stop_signal: SIGKILL
+
+  validator-3:
+    image: hyperledger/sawtooth-validator:1.1
+    container_name: sawtooth-validator-3
+    expose:
+      - 4004
+      - 8800
+      - 5050
+    volumes:
+      - keys:/shared_keys
+    entrypoint: "bash -c \"\
+      while true; do if [ -e /shared_keys/validator-3.pub ]; then mv /shared_keys/validator-3.priv /etc/sawtooth/keys/validator.priv && mv /shared_keys/validator-3.pub /etc/sawtooth/keys/validator.pub; break; fi; sleep 0.5; done; \
+      echo $$(cat /etc/sawtooth/keys/validator.pub); \
+      sawtooth-validator \
+        --endpoint tcp://validator-3:8800 \
+        --bind component:tcp://eth0:4004 \
+        --bind network:tcp://eth0:8800 \
+        --bind consensus:tcp://eth0:5050 \
+        --peering static \
+        --peers tcp://validator-0:8800,tcp://validator-1:8800,tcp://validator-2:8800
+        --scheduler parallel \
+        --maximum-peer-connectivity 3 \
+      \""
+    stop_signal: SIGKILL
+
+  pbft-engine-2:
+    image: hyperledger/sawtooth-pbft-engine:0.1
+    container_name: pbft-engine-2
+    depends_on:
+      - validator-2
+    entrypoint: pbft-engine -vv --connect tcp://validator-2:5050
+
+  pbft-engine-3:
+    image: hyperledger/sawtooth-pbft-engine:0.1
+    container_name: pbft-engine-3
+    depends_on:
+      - validator-3
+    entrypoint: pbft-engine -vv --connect tcp://validator-3:5050
+
+  rest-api-2:
+    image: hyperledger/sawtooth-rest-api:1.1
+    container_name: sawtooth-rest-api-2
+    expose:
+      - "8008"
+    depends_on:
+      - validator-2
+    entrypoint: sawtooth-rest-api -C tcp://validator-2:4004 --bind rest-api-2:8008
+
+  rest-api-3:
+    image: hyperledger/sawtooth-rest-api:1.1
+    container_name: sawtooth-rest-api-3
+    expose:
+      - "8008"
+    depends_on:
+      - validator-3
+    entrypoint: sawtooth-rest-api -C tcp://validator-3:4004 --bind rest-api-3:8008
+
+  ccn-server-2:
+    build:
+      context: ./
+      dockerfile: ccn-server/Dockerfile
+    container_name: ccn-server-2
+    depends_on:
+      - rest-api-2
+    ports:
+      - "5000:5000"
+    expose:
+      - 5000
+    working_dir: /ccn-server
+    entrypoint: "bash -c \"\
+      sawtooth keygen ; \
+      pipenv run python server/main.py \
+        --sawtoothApi http://rest-api-2:8008 \
+        --neighbors '10.0.0.2:5000,10.0.0.2:5001,ccn-server-3:5000' \
+        --host 'ccn-server-2'; \
+      \""
+
+  ccn-server-3:
+    build:
+      context: ./
+      dockerfile: ccn-server/Dockerfile
+    container_name: ccn-server-3
+    depends_on:
+      - rest-api-3
+    ports:
+      - "5001:5000"
+    expose:
+      -5000
+    working_dir: /ccn-server
+    entrypoint: "bash -c \"\
+      sawtooth keygen ; \
+      pipenv run python server/main.py \
+        --sawtoothApi http://rest-api-2:8008 \
+        --neighbors '10.0.0.2:5000,10.0.0.2:5001,ccn-server-2:5000' \
+        --host 'ccn-server-3'; \
+      \""
+
+  shell:
+    image: hyperledger/sawtooth-all:1.1
+    container_name: sawtooth-shell
+    depends_on:
+      - rest-api-0
+    entrypoint: "bash -c \"\
+      sawtooth keygen ; \
+      tail -f /dev/null \
+      \""

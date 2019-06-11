@@ -29,7 +29,7 @@ services:
     depends_on:
       - validator
     entrypoint: "python3 crdt-tp-python/processor/main.py \
-      --crdt http://ccn-server:5000
+      --crdt http://ccn-server:5000 \
       -C tcp://validator:4004 \
       -v
       "
