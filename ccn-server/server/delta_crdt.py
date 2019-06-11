@@ -33,7 +33,7 @@ class DeltaPropCrdt(object):
         self.propagate_timer = None
         self.propagate_lock = threading.Lock()
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
     def insert_exchange(self, source, record_blob):
         exchange = asterales_parsers.parse_exchange_record(record_blob)
@@ -86,7 +86,7 @@ class DeltaPropCrdt(object):
             return
 
         try:
-            self.logger.debug("Propagating deltas now")
+            self.logger.info("Propagating deltas now")
             # Cancel any outstanding propagate timers
             if self.propagate_timer is not None:
                 self.propagate_timer.cancel()
@@ -127,8 +127,8 @@ class DeltaPropCrdt(object):
 
     def get_endorsing_records(self, receiver_id, current_frontier,
                               proposed_frontier):
-        self.logger.debug("getting endorsing records (%d, %d] for %d",
-                          current_frontier, proposed_frontier, receiver_id)
+        self.logger.info("getting endorsing records (%d, %d] for %d",
+                         current_frontier, proposed_frontier, receiver_id)
 
         # Prune local state as needed.
         keys_to_drop = []
