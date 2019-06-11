@@ -157,6 +157,13 @@ def receive_neighbor_package():
     CRDT_INSTANCE.process_neighbor_package(request.data)
     return ''
 
+
+@app.route('/crdt/forceDeltaPropagate', methods=['POST'])
+def force_crdt_propagation():
+    CRDT_INSTANCE.propagate_delta()
+    return ''
+
+
 # TODO(matt9j) In the future ensure this is only visible to the local validator.
 @app.route('/crdt/endorsingRecords', methods=['POST'])
 def get_endorsing_records():
